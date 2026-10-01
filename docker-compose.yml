@@ -1,59 +1,58 @@
-# =====================================================================
-# docker-compose.yml — RISK METER DASHBOARD
-#
-# Orquesta el backend (FastAPI) y el frontend (Streamlit).
-#
-# GUIA RAPIDA:
-#   docker-compose up -d          # Arranca todo en segundo plano
-#   docker-compose logs -f        # Ver logs en tiempo real
-#   docker-compose down           # Detiene y elimina contenedores
-#   docker-compose build          # Reconstruye imagenes
-#
-# ACCESOS:
-#   Backend API:  http://localhost:8000
-# ACCESOS:
-#   Backend y Dashboard: http://localhost:8000
-#   Swagger /docs:       http://localhost:8000/docs
-# =====================================================================
-
 version: "3.9"
 
 services:
+  # ── Base de datos PostgreSQL ─────────────────
+  db:
+    image: postgres:16
+    container_name: vigia_db
+    environment:
+      POSTGRES_DB: vigia
+      POSTGRES_USER: vigia_user
+      POSTGRES_PASSWORD: vigia_pass
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    networks: [vigia-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vigia_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # ══════════════════════════════════════════════
-  # SERVICIO 1: Backend FastAPI
-  # ══════════════════════════════════════════════
+  # ── Panel de administración BD ───────────────
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: vigia_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@vigia.co
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports: ["5050:80"]
+    depends_on: [db]
+    networks: [vigia-net]
+
+  # ── Backend FastAPI + Frontend estático ──────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: risk_meter_backend
-    ports:
-      - "8000:8000"       # Puerto local:Puerto contenedor
+    container_name: vigia_backend
+    ports: ["8000:8000"]
     env_file:
-      - ./backend/.env    # Carga API keys y configuracion
+      - ./backend/.env
+    depends_on: [db]
     volumes:
-      # Hot-reload: cambios en backend/ se reflejan sin rebuild
       - ./backend:/app
-      # Preserva __pycache__ dentro del contenedor (mejor rendimiento)
       - /app/__pycache__
-    networks:
-      - risklab-net
+    networks: [vigia-net]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
 
-
-
-# ══════════════════════════════════════════════
-# RED INTERNA
-# ══════════════════════════════════════════════
 networks:
-  risklab-net:
-    # Red bridge privada: los contenedores se ven entre si
-    # pero estan aislados del exterior (excepto por los ports publicados)
+  vigia-net:
     driver: bridge
+
+volumes:
+  pgdata:

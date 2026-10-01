@@ -1,83 +1,181 @@
 """
-seed.py — Script para inicializar la base de datos con datos semilla.
+seed.py — Carga datos iniciales de demostración en la BD de Vigía.
 
-Patrón del curso Python para APIs e IA (Semana 7):
-  - Pre-popula la tabla `assets` con los tickers seleccionados por el equipo.
-  - Crea un portafolio de prueba inicial.
-  - Se ejecuta una sola vez durante el despliegue o la configuración local.
+Ejecutar una sola vez:
+    python seed.py
+
+Crea:
+  - 3 proyectos demo con indicadores y afirmaciones de prueba
+  - No modifica datos si los proyectos ya existen
 """
 
 import sys
 import os
-from datetime import datetime
+from pathlib import Path
+from datetime import date
 
-# Agregar el directorio backend al path para poder importar la app
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Agregar backend/ al path
+sys.path.insert(0, str(Path(__file__).parent))
 
-from app.database import SessionLocal, engine, Base
-from app.models.db_models import Asset, Portfolio
+from app.config import get_settings
+from app.database import engine, Base, SessionLocal
+from app.models.db_models import Proyecto, Indicador, Afirmacion, Dataset
 
-def run_seed():
-    print("[INFO] Iniciando proceso de seeding de la base de datos...")
-    
-    # Asegurar que las tablas existan
+settings = get_settings()
+
+
+PROYECTOS_DEMO = [
+    {
+        "id": "p-demo-001",
+        "nombre": "Fundación Vigía — Nutrición Infantil",
+        "descripcion": "Programa de intervención nutricional en comunidades de la Localidad de Suba.",
+        "responsable": "Dra. Carmen Lucía Vargas",
+        "fecha_inicio": date(2025, 1, 15),
+        "estado": "ACTIVO",
+        "indicadores": [
+            {
+                "id": "i-001-01",
+                "nombre": "Niños beneficiarios",
+                "formula": "(beneficiarios_reales / beneficiarios_meta) * 100",
+                "valor_meta": 500.0,
+                "valor_real": 312.0,
+            },
+            {
+                "id": "i-001-02",
+                "nombre": "Talleres nutricionales realizados",
+                "formula": "(talleres_realizados / talleres_programados) * 100",
+                "valor_meta": 24.0,
+                "valor_real": 18.0,
+            },
+            {
+                "id": "i-001-03",
+                "nombre": "Reducción de desnutrición (%)",
+                "formula": "diferencia_porcentual_desnutricion",
+                "valor_meta": 15.0,
+                "valor_real": 8.5,
+            },
+        ],
+        "afirmaciones": [
+            {
+                "id": "a-001-01",
+                "texto": "El programa redujo la desnutrición infantil en un 15% en la zona de intervención.",
+                "veredicto": None,
+            },
+            {
+                "id": "a-001-02",
+                "texto": "Las intervenciones nutricionales tienen mayor eficacia cuando se combinan con educación parental.",
+                "veredicto": None,
+            },
+        ],
+    },
+    {
+        "id": "p-demo-002",
+        "nombre": "Proyecto USTA — Calidad del Aire Bogotá",
+        "descripcion": "Monitoreo estadístico de calidad del aire en zonas de alta contaminación.",
+        "responsable": "Ing. Felipe Mora",
+        "fecha_inicio": date(2025, 3, 1),
+        "estado": "ACTIVO",
+        "indicadores": [
+            {
+                "id": "i-002-01",
+                "nombre": "Estaciones de monitoreo activas",
+                "formula": "(estaciones_activas / estaciones_instaladas) * 100",
+                "valor_meta": 10.0,
+                "valor_real": 7.0,
+            },
+            {
+                "id": "i-002-02",
+                "nombre": "Días con PM2.5 menor a 25 μg/m³",
+                "formula": "(dias_cumplimiento / dias_totales) * 100",
+                "valor_meta": 200.0,
+                "valor_real": 143.0,
+            },
+        ],
+        "afirmaciones": [
+            {
+                "id": "a-002-01",
+                "texto": "La concentración de PM2.5 en Bogotá supera el límite OMS de 15 μg/m³ más del 60% de los días.",
+                "veredicto": None,
+            },
+        ],
+    },
+    {
+        "id": "p-demo-003",
+        "nombre": "Retail Store — Análisis de Ventas",
+        "descripcion": "Dataset de prueba del módulo Estadística → ML. Basado en retail_store_sales.",
+        "responsable": "Equipo Vigía",
+        "fecha_inicio": date(2025, 6, 1),
+        "estado": "ACTIVO",
+        "indicadores": [
+            {
+                "id": "i-003-01",
+                "nombre": "Registros procesados",
+                "formula": "filas_limpias / filas_originales * 100",
+                "valor_meta": 5000.0,
+                "valor_real": None,
+            },
+        ],
+        "afirmaciones": [],
+    },
+]
+
+
+def main():
+    print("=" * 60)
+    print("VIGÍA — Cargando datos de demostración")
+    print("=" * 60)
+
     Base.metadata.create_all(bind=engine)
-    
+
     db = SessionLocal()
     try:
-        # 1. Semilla de Activos (Assets)
-        activos_semilla = [
-            {"ticker": "AAPL", "name": "Apple Inc.", "sector": "Technology", "currency": "USD"},
-            {"ticker": "MSFT", "name": "Microsoft Corp.", "sector": "Technology", "currency": "USD"},
-            {"ticker": "TSLA", "name": "Tesla Inc.", "sector": "Consumer Cyclical", "currency": "USD"},
-            {"ticker": "AMZN", "name": "Amazon.com Inc.", "sector": "Consumer Cyclical", "currency": "USD"},
-            {"ticker": "GOOG", "name": "Alphabet Inc.", "sector": "Communication Services", "currency": "USD"},
-        ]
-        
-        activos_agregados = 0
-        for data in activos_semilla:
-            # Comprobar si ya existe
-            existe = db.query(Asset).filter(Asset.ticker == data["ticker"]).first()
-            if not existe:
-                nuevo_activo = Asset(**data)
-                db.add(nuevo_activo)
-                activos_agregados += 1
-                
-        if activos_agregados > 0:
-            print(f"[OK] Se agregaron {activos_agregados} activos a la base de datos.")
-        else:
-            print("[INFO] Los activos semilla ya estaban en la base de datos.")
+        for p_data in PROYECTOS_DEMO:
+            existente = db.query(Proyecto).filter(Proyecto.id == p_data["id"]).first()
+            if existente:
+                print(f"  ⚡ Proyecto ya existe: '{p_data['nombre']}' — omitido")
+                continue
 
-        # 2. Semilla de Portafolio de Prueba
-        nombre_portafolio = "Portafolio Base (Igual Ponderacion)"
-        existe_port = db.query(Portfolio).filter(Portfolio.name == nombre_portafolio).first()
-        
-        if not existe_port:
-            tickers = [a["ticker"] for a in activos_semilla]
-            peso_igual = round(1.0 / len(tickers), 4)
-            # Asegurar que sumen exactamente 1.0 ajustando el último
-            pesos = [peso_igual] * (len(tickers) - 1)
-            pesos.append(round(1.0 - sum(pesos), 4))
-            
-            nuevo_portafolio = Portfolio(
-                name=nombre_portafolio,
-                tickers=tickers,
-                weights=pesos
+            proyecto = Proyecto(
+                id=p_data["id"],
+                nombre=p_data["nombre"],
+                descripcion=p_data["descripcion"],
+                responsable=p_data["responsable"],
+                fecha_inicio=p_data["fecha_inicio"],
+                estado=p_data["estado"],
             )
-            db.add(nuevo_portafolio)
-            print(f"[OK] Se agrego el portafolio: '{nombre_portafolio}'")
-        else:
-            print("[INFO] El portafolio de prueba ya estaba en la base de datos.")
+            db.add(proyecto)
 
-        # Confirmar los cambios
-        db.commit()
-        print("[OK] Seeding completado con exito.")
-        
+            for ind in p_data.get("indicadores", []):
+                indicador = Indicador(
+                    id=ind["id"],
+                    proyecto_id=p_data["id"],
+                    nombre=ind["nombre"],
+                    formula=ind["formula"],
+                    valor_meta=ind["valor_meta"],
+                    valor_real=ind["valor_real"],
+                )
+                db.add(indicador)
+
+            for afirm in p_data.get("afirmaciones", []):
+                afirmacion = Afirmacion(
+                    id=afirm["id"],
+                    proyecto_id=p_data["id"],
+                    texto=afirm["texto"],
+                    veredicto=afirm.get("veredicto"),
+                )
+                db.add(afirmacion)
+
+            db.commit()
+            print(f"  ✅ Proyecto creado: '{p_data['nombre']}'")
+
+        print("\n✅ Seed completado")
     except Exception as e:
         db.rollback()
-        print(f"[ERROR] Error durante el seeding: {e}")
+        print(f"\n❌ Error durante seed: {e}")
+        raise
     finally:
         db.close()
 
+
 if __name__ == "__main__":
-    run_seed()
+    main()

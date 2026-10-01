@@ -17,12 +17,11 @@ from app.config import get_settings
 
 settings = get_settings()
 
-# ── Motor SQLAlchemy ──────────────────────────────────
-# check_same_thread=False es OBLIGATORIO para SQLite con FastAPI
-# (FastAPI usa múltiples threads, SQLite por defecto solo permite uno)
+connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+
 engine = create_engine(
     settings.DATABASE_URL,
-    connect_args={"check_same_thread": False},
+    connect_args=connect_args,
     echo=False,  # Cambiar a True para ver SQL en consola (debug)
 )
 

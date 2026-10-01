@@ -24,36 +24,27 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=os.path.join(os.path.dirname(__file__), "..", "..", ".env"),
+        # Busca .env en backend/ (local) o en la raíz del proyecto (Docker)
+        env_file=[
+            os.path.join(os.path.dirname(__file__), "..", ".env"),   # backend/.env
+            os.path.join(os.path.dirname(__file__), "..", "..", ".env"),  # vigia/.env
+        ],
         env_file_encoding="utf-8",
-        extra="ignore",  # Ignora variables extra en .env sin error
+        extra="ignore",
     )
 
-    # ── APIs Financieras Externas ──────────────────────────
-    FRED_API_KEY: str = "tu_clave_fred_aqui"
-    ALPHA_VANTAGE_KEY: str = ""
-    FINNHUB_KEY: str = ""
+    # ── APIs y LLM Providers ───────────────────────────────
+    GROQ_API_KEY: str = ""
+    GOOGLE_API_KEY: str = ""
 
-    # ── Parámetros de Riesgo por defecto ──────────────────
-    # Nivel de confianza para VaR (el usuario puede sobreescribir por endpoint)
-    VAR_CONFIDENCE_DEFAULT: float = 0.95
-
-    # Número de simulaciones Montecarlo
-    MONTECARLO_N_SIM: int = 10_000
-
-    # Ventana histórica por defecto (en días de trading)
-    GARCH_WINDOW: int = 252
-
-    # Ticker del índice de referencia (benchmark)
-    BENCHMARK_TICKER: str = "^GSPC"  # S&P 500
+    # ── Parámetros de Auth ────────────────────────────────
+    SECRET_KEY: str = "clave_secreta_vigia_desarrollo_cambiar_en_produccion"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # ── Base de Datos ─────────────────────────────────────
-    # SQLite embebido (cero configuración). Para producción,
-    # cambiar a "postgresql://user:pass@host/db" sin tocar el ORM.
-    DATABASE_URL: str = "sqlite:///./risklab.db"
-
-    # Serie FRED para tasa libre de riesgo
-    FRED_RF_SERIE: str = "DGS3MO"   # T-Bill 3 meses
+    # SQLite para desarrollo local; PostgreSQL en Docker (override con .env)
+    DATABASE_URL: str = "sqlite:///./vigia_dev.db"
 
     # ── Servidor ──────────────────────────────────────────
     BACKEND_HOST: str = "0.0.0.0"

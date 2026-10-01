@@ -1,136 +1,118 @@
 """
-db_models.py — Modelos ORM de SQLAlchemy para persistencia.
+db_models.py — Modelos ORM de SQLAlchemy para persistencia de Vigía.
 
-Patrón del curso Python para APIs e IA (Semana 7):
-  - Cada tabla se define como una clase Python tipada.
-  - Las relaciones (1:N) se expresan con relationship().
-  - Esto permite usar db.query(Asset).filter(...) en lugar de SQL raw.
-
-Cuatro modelos mínimos requeridos por la rúbrica:
-  1. Asset      — Activos del portafolio
-  2. Price      — Precios históricos (cache de Yahoo Finance)
-  3. Portfolio  — Portafolios guardados por el usuario
-  4. PredictionLog — Log de predicciones del modelo ML
+Mapeo objeto-relacional para las 4 capas de Vigía.
 """
 
 from datetime import datetime
 from sqlalchemy import (
     Column, Integer, String, Float, Date, DateTime,
-    ForeignKey, JSON, UniqueConstraint,
+    ForeignKey, JSON, Text
 )
 from sqlalchemy.orm import relationship
 from app.database import Base
 
 
-class Asset(Base):
+class Proyecto(Base):
     """
-    Activo financiero registrado en el sistema.
-
-    Almacena metadata del ticker para no consultar Yahoo Finance
-    en cada request. Se pre-popula con seed.py.
+    Entidad principal: un nodo de la red (proyecto social, iniciativa, etc.).
     """
-    __tablename__ = "assets"
+    __tablename__ = "proyectos"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ticker = Column(String(10), unique=True, nullable=False, index=True)
-    name = Column(String(120), default="")
-    sector = Column(String(60), default="N/A")
-    currency = Column(String(10), default="USD")
+    id = Column(String(36), primary_key=True)  # UUID
+    nombre = Column(String(120), nullable=False)
+    descripcion = Column(Text, default="")
+    responsable = Column(String(100), default="")
+    fecha_inicio = Column(Date, nullable=True)
+    estado = Column(String(20), default="ACTIVO")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relación 1:N → un activo tiene muchos precios
-    prices = relationship("Price", back_populates="asset", cascade="all, delete-orphan")
+    # Relaciones
+    indicadores = relationship("Indicador", back_populates="proyecto", cascade="all, delete-orphan")
+    afirmaciones = relationship("Afirmacion", back_populates="proyecto", cascade="all, delete-orphan")
+    datasets = relationship("Dataset", back_populates="proyecto", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<Asset(ticker={self.ticker!r}, name={self.name!r})>"
+        return f"<Proyecto(id={self.id}, nombre={self.nombre!r})>"
 
 
-class Price(Base):
+class Indicador(Base):
     """
-    Precio histórico de un activo (cache transparente).
-
-    Cuando el frontend pide /precios/{ticker}, el DataService
-    primero busca aquí. Si no existe o es viejo, llama a Yahoo
-    Finance y persiste el resultado.
+    Indicador de desempeño asociado a un Proyecto.
+    (Ej: entregables_hechos, beneficiarios_reales, etc.)
     """
-    __tablename__ = "prices"
-    __table_args__ = (
-        UniqueConstraint("asset_id", "date", name="uq_asset_date"),
-    )
+    __tablename__ = "indicadores"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False, index=True)
-    date = Column(Date, nullable=False, index=True)
-    open = Column(Float)
-    high = Column(Float)
-    low = Column(Float)
-    close = Column(Float)
-    volume = Column(Float)
+    id = Column(String(36), primary_key=True)
+    proyecto_id = Column(String(36), ForeignKey("proyectos.id"), nullable=False, index=True)
+    nombre = Column(String(100), nullable=False)
+    formula = Column(String(200), default="")
+    valor_meta = Column(Float, nullable=True)
+    valor_real = Column(Float, nullable=True)
+    fecha_medicion = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relación inversa
-    asset = relationship("Asset", back_populates="prices")
+    proyecto = relationship("Proyecto", back_populates="indicadores")
 
     def __repr__(self):
-        return f"<Price(asset_id={self.asset_id}, date={self.date}, close={self.close})>"
+        return f"<Indicador(nombre={self.nombre!r}, valor_real={self.valor_real})>"
 
 
-class Portfolio(Base):
+class Afirmacion(Base):
     """
-    Portafolio guardado por el usuario.
-
-    Permite CRUD básico: el usuario guarda una composición
-    (tickers + pesos) y puede recuperarla después.
+    Afirmación de impacto a ser contrastada por el Agente 01.
     """
-    __tablename__ = "portfolios"
+    __tablename__ = "afirmaciones"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(120), nullable=False)
-    tickers = Column(JSON, nullable=False)   # ["AAPL", "MSFT", ...]
-    weights = Column(JSON, nullable=False)   # [0.2, 0.3, ...]
+    id = Column(String(36), primary_key=True)
+    proyecto_id = Column(String(36), ForeignKey("proyectos.id"), nullable=False, index=True)
+    texto = Column(Text, nullable=False)
+    veredicto = Column(String(50), nullable=True)  # SUSTENTADA, REFUTADA, SIN DATOS
+    fuente_url = Column(String(500), nullable=True)
+    confianza = Column(Float, nullable=True)       # Score 0 a 1
+    agente_id = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relación inversa
+    proyecto = relationship("Proyecto", back_populates="afirmaciones")
 
     def __repr__(self):
-        return f"<Portfolio(name={self.name!r}, tickers={self.tickers})>"
+        return f"<Afirmacion(veredicto={self.veredicto!r})>"
 
 
-class PredictionLog(Base):
+class Dataset(Base):
     """
-    Log de predicciones del modelo de Machine Learning.
-
-    Cada vez que el endpoint /predict genera una predicción,
-    se registra aquí para monitoreo futuro (drift detection, auditoría).
+    Dataset subido para el módulo Estadística -> ML (Agente 04).
     """
-    __tablename__ = "predictions_log"
+    __tablename__ = "datasets"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    model_version = Column(String(40), default="v1.0.0")
-    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
-    ticker = Column(String(10), nullable=False)
-    input_features = Column(JSON)
-    prediction = Column(Float)
-    actual = Column(Float, nullable=True)  # Se llena después si se conoce el real
+    id = Column(String(36), primary_key=True)
+    proyecto_id = Column(String(36), ForeignKey("proyectos.id"), nullable=True, index=True)
+    nombre = Column(String(120), nullable=False)
+    descripcion = Column(Text, default="")
+    s3_path = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relación inversa
+    proyecto = relationship("Proyecto", back_populates="datasets")
 
     def __repr__(self):
-        return f"<PredictionLog(ticker={self.ticker!r}, prediction={self.prediction})>"
+        return f"<Dataset(nombre={self.nombre!r})>"
 
 
-class SignalLog(Base):
+class AlertaLog(Base):
     """
-    Log de señales de trading disparadas.
-
-    Requerimiento de la rúbrica: persistir cada señal en una tabla
-    signals_log de SQLite (timestamp, ticker, regla, valor).
+    Registro de alertas y anomalías detectadas por el Agente 02.
     """
-    __tablename__ = "signals_log"
+    __tablename__ = "alertas_log"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
-    ticker = Column(String(10), nullable=False, index=True)
-    rule = Column(String(60), nullable=False)     # "RSI_OVERSOLD", "MACD_CROSS_BUY", etc.
-    value = Column(Float)                          # Valor del indicador al momento del disparo
-    signal_type = Column(String(10))               # "BUY" o "SELL"
-    description = Column(String(200), default="")
-
+    proyecto_id = Column(String(36), ForeignKey("proyectos.id"), nullable=False, index=True)
+    tipo_alerta = Column(String(50), nullable=False) # ej: IMPACTO_BAJO, ANOMALIA_ESTADISTICA
+    mensaje = Column(Text, nullable=False)
+    severidad = Column(String(20), default="MEDIA")
+    
     def __repr__(self):
-        return f"<SignalLog(ticker={self.ticker!r}, rule={self.rule!r})>"
+        return f"<AlertaLog(tipo={self.tipo_alerta}, severidad={self.severidad})>"

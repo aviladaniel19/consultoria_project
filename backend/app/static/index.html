@@ -4,2266 +4,2273 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>RISK METER DASHBOARD — Dashboard de Riesgo</title>
+  <title>VIGÍA — Red de Monitoreo Estadístico</title>
+  <meta name="description" content="Sistema Vigía de monitoreo estadístico de proyectos de impacto social. Facultad de Estadística USTA.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0
+    /* ══════════════════════════════════════════════
+       DESIGN SYSTEM — VIGÍA
+    ══════════════════════════════════════════════ */
+    :root {
+      --bg-base:      #04070e;
+      --bg-surface:   #080f1c;
+      --bg-elevated:  #0d1626;
+      --bg-hover:     #111e33;
+      --border:       #192334;
+      --border-light: #1e2d45;
+
+      --cyan:   #22d3ee;
+      --violet: #818cf8;
+      --amber:  #fbbf24;
+      --green:  #34d399;
+      --red:    #f87171;
+      --blue:   #60a5fa;
+
+      --text-primary:   #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted:     #475569;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+
+      --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
     }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #05080f;
-      color: #ffffff;
-      min-height: 100vh
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* ══════════════════════════════════════════════
+       LAYOUT
+    ══════════════════════════════════════════════ */
     .shell {
-      max-width: 1280px;
+      max-width: 1340px;
       margin: 0 auto;
-      padding: 1.5rem
+      padding: 0 1.5rem 4rem;
     }
 
-    .header {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      padding-bottom: 1.25rem;
-      border-bottom: 1px solid #16202e;
-      margin-bottom: 1.5rem
+    /* ══════════════════════════════════════════════
+       TOPBAR
+    ══════════════════════════════════════════════ */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(4, 7, 14, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
     }
 
-    .header-top {
+    .topbar-inner {
+      max-width: 1340px;
+      margin: 0 auto;
+      height: 58px;
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: flex-end
+      gap: 1rem;
     }
 
-    .header-left h1 {
-      font-size: 18px;
-      font-weight: 600;
-      color: #f1f5f9;
-      letter-spacing: .02em
-    }
-
-    .header-left p {
-      font-size: 12px;
-      color: #64748b;
-      margin-top: 3px
-    }
-
-    .ts {
-      font-size: 11px;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      color: #475569;
-      text-align: right
-    }
-
-    .form-panel {
-      background: #0b121d;
-      border: 1px solid #16202e;
-      border-radius: 12px;
-      padding: 1rem;
+    .brand {
       display: flex;
-      gap: 15px;
-      align-items: flex-end
+      align-items: center;
+      gap: 10px;
     }
 
-    .form-grp {
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--violet) 100%);
+      border-radius: 8px;
       display: flex;
-      flex-direction: column;
-      gap: 5px
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
     }
 
-    .form-grp label {
-      font-size: 11px;
-      color: #cbd5e1;
-      text-transform: uppercase;
-      letter-spacing: .06em
-    }
-
-    .form-input {
-      padding: 8px;
-      background: #05080f;
-      border: 1px solid #1e293b;
-      color: #f1f5f9;
-      border-radius: 8px;
-      font-size: 13px;
-      font-family: 'SF Mono', monospace
-    }
-
-    .btn-analizar {
-      padding: 9px 18px;
-      background: #22d3ee;
-      color: #05080f;
-      border: none;
-      border-radius: 8px;
+    .brand-text h1 {
+      font-size: 15px;
       font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all .2s;
-      box-shadow: 0 0 15px rgba(34, 211, 238, 0.2)
+      color: var(--text-primary);
+      letter-spacing: 0.06em;
     }
 
-    .btn-analizar:hover {
-      opacity: .8;
-      transform: translateY(-1px);
-      box-shadow: 0 0 20px rgba(34, 211, 238, 0.3)
+    .brand-text p {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
     }
 
-    .btn-analizar:disabled {
-      background: #475569;
-      cursor: not-allowed
-    }
-
-    .tabs {
+    .topbar-right {
       display: flex;
-      gap: 0;
-      border-bottom: 1px solid #16202e;
-      margin-bottom: 1.5rem
+      align-items: center;
+      gap: 12px;
     }
 
-    .tab {
-      padding: 9px 18px;
-      font-size: 13px;
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 20px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-dot 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .btn-login {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
       background: transparent;
-      border: 0;
-      border-bottom: 2px solid transparent;
-      color: #cbd5e1;
-      cursor: pointer;
-      transition: all .15s;
-      letter-spacing: .01em
-    }
-
-    .tab:hover {
-      color: #94a3b8;
-      background: rgba(255, 255, 255, .03)
-    }
-
-    .tab.act {
-      color: #22d3ee;
-      border-bottom-color: #22d3ee;
-      font-weight: 600
-    }
-
-    .g4 {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 1.25rem
-    }
-
-    .g3 {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 1.25rem
-    }
-
-    .g2 {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 1.25rem
-    }
-
-    .mc {
-      background: #0b121d;
-      border: 1px solid #16202e;
-      border-radius: 12px;
-      padding: 1.1rem;
-      transition: all .2s;
-    }
-
-    .ml {
-      font-size: 11px;
-      font-weight: 700;
-      color: #94a3b8;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-    }
-
-    .mv {
-      font-size: 24px;
-      font-weight: 700;
-      font-family: 'JetBrains Mono', 'SF Mono', monospace;
-      margin-bottom: 2px;
-    }
-
-    .ms {
-      font-size: 11px;
-      color: #22d3ee;
-      margin-top: 3px;
-      opacity: .7
-    }
-
-    .card {
-      background: #0b121d;
-      border: 1px solid #16202e;
-      border-radius: 12px;
-      padding: 1.1rem 1.25rem;
-      margin-bottom: 1.25rem
-    }
-
-    .ct {
-      font-size: 11px;
-      font-weight: 600;
-      color: #ffffff;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      margin-bottom: 14px
-    }
-
-    .ht {
-      width: 100%;
-      border-collapse: collapse
-    }
-
-    .ht th,
-    .ht td {
-      padding: 8px 12px;
+      border: 1px solid var(--border-light);
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
       font-size: 12px;
-      text-align: center;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
     }
 
-    /* Opción C: Colores Sólidos Vibrantes por tarjeta */
-    .mc:nth-child(1) { border-color: #22d3ee; }
-    .mc:nth-child(1) .mv { color: #22d3ee; }
-    .mc:nth-child(1) .ml { color: #22d3ee; }
+    .btn-login:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
 
-    .mc:nth-child(2) { border-color: #818cf8; }
-    .mc:nth-child(2) .mv { color: #818cf8; }
-    .mc:nth-child(2) .ml { color: #818cf8; }
+    .btn-login.logged-in {
+      border-color: var(--green);
+      color: var(--green);
+    }
 
-    .mc:nth-child(3) { border-color: #fbbf24; }
-    .mc:nth-child(3) .mv { color: #fbbf24; }
-    .mc:nth-child(3) .ml { color: #fbbf24; }
+    /* ══════════════════════════════════════════════
+       HERO — Selector de Proyecto
+    ══════════════════════════════════════════════ */
+    .hero {
+      padding: 2rem 0 1.5rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
 
-    .mc:nth-child(4) { border-color: #3dd32c; }
-    .mc:nth-child(4) .mv { color: #3dd32c; }
-    .mc:nth-child(4) .ml { color: #3dd32c; }
+    .hero-left h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
 
-    /* Estilos para Composición Manual */
-    .act-grid {
+    .hero-left p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .hero-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .select-proyecto {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      outline: none;
+      min-width: 240px;
+      transition: border-color 0.2s;
+    }
+
+    .select-proyecto:focus { border-color: var(--cyan); }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      background: linear-gradient(135deg, var(--cyan) 0%, #0ea5e9 100%);
+      color: #04070e;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 0 20px rgba(34, 211, 238, 0.25);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 30px rgba(34, 211, 238, 0.4);
+    }
+
+    .btn-primary:disabled {
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-light);
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--violet);
+      color: var(--violet);
+    }
+
+    /* ══════════════════════════════════════════════
+       KPI CARDS — 4 ÍNDICES VIGÍA
+    ══════════════════════════════════════════════ */
+    .indices-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
       margin-bottom: 1.5rem;
     }
 
-    .act-card {
-      background: #05080f;
-      border: 1px solid #16202e;
-      border-radius: 12px;
-      padding: 12px;
-      transition: all .2s;
+    @media (max-width: 900px) {
+      .indices-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
-    .act-card:focus-within {
-      border-color: #3b82f6;
+    @media (max-width: 520px) {
+      .indices-grid { grid-template-columns: 1fr; }
     }
 
-    .w-input {
-      background: #1e2435;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      color: #f1f5f9;
-      font-family: 'SF Mono', monospace;
-      font-size: 16px;
-      font-weight: 600;
-      padding: 6px 8px;
-      width: 100%;
-      text-align: right;
-      outline: none;
-    }
-
-    .w-input:focus {
-      border-color: #3b82f6;
-      background: #242b3d;
-    }
-
-    .sum-bar-container {
-      background: #1e2435;
-      border-radius: 20px;
-      height: 8px;
-      width: 100%;
+    .kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      position: relative;
       overflow: hidden;
-      margin: 15px 0;
+      transition: transform 0.2s, border-color 0.2s;
+      cursor: default;
     }
 
-    .sum-bar-fill {
-      height: 100%;
-      transition: width .3s, background-color .3s;
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
     }
 
-    .btn-apply {
-      background: #22d3ee;
-      color: #05080f;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
+    .kpi-card:nth-child(1)::before { background: var(--cyan); }
+    .kpi-card:nth-child(2)::before { background: var(--violet); }
+    .kpi-card:nth-child(3)::before { background: var(--amber); }
+    .kpi-card:nth-child(4)::before { background: var(--green); }
+
+    .kpi-card:hover { transform: translateY(-2px); }
+    .kpi-card:nth-child(1):hover { border-color: var(--cyan); }
+    .kpi-card:nth-child(2):hover { border-color: var(--violet); }
+    .kpi-card:nth-child(3):hover { border-color: var(--amber); }
+    .kpi-card:nth-child(4):hover { border-color: var(--green); }
+
+    .kpi-label {
+      font-size: 10px;
       font-weight: 700;
-      cursor: pointer;
-      transition: all .2s;
-    }
-
-    .btn-apply:hover {
-      background: #06b6d4;
-      transform: translateY(-1px);
-    }
-
-    .btn-apply:disabled {
-      background: #1e2435;
-      color: #64748b;
-      cursor: not-allowed;
-    }
-
-    .ht th {
-      color: #64748b;
-      font-weight: 500;
-      text-align: center;
-    }
-
-    .ht td:first-child {
-      text-align: center;
-      font-weight: 500;
-      color: #e2e8f0
-    }
-
-    .ht tr:last-child td {
-      border-bottom: 0
-    }
-
-    .sig {
-      display: inline-flex;
-      align-items: center;
-      font-size: 11px;
-      padding: 3px 9px;
-      border-radius: 5px;
-      font-weight: 600;
-      letter-spacing: .03em
-    }
-
-    .sb {
-      background: rgba(61, 211, 44, .15);
-      color: #3dd32c
-    }
-
-    .ss {
-      background: rgba(239, 68, 68, .15);
-      color: #f87171
-    }
-
-    .sn {
-      background: rgba(100, 116, 139, .12);
-      color: #94a3b8
-    }
-
-    .srow {
-      display: grid;
-      grid-template-columns: 88px repeat(4, 1fr);
-      gap: 6px;
-      align-items: center
-    }
-
-    .srow-cell {
-      text-align: center;
-      padding: 9px 4px;
-      border-top: 1px solid #1e2435
-    }
-
-    .srow-name {
-      font-size: 13px;
-      font-weight: 600;
-      padding: 9px 4px;
-      border-top: 1px solid #1e2435;
-      color: #e2e8f0
-    }
-
-    .srow-hdr {
-      font-size: 11px;
-      font-weight: 500;
-      color: #64748b;
-      text-align: center;
       text-transform: uppercase;
-      letter-spacing: .06em;
-      padding-bottom: 8px
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
     }
 
-    .srow-hdr:first-child {
-      text-align: left
+    .kpi-card:nth-child(1) .kpi-label { color: var(--cyan); }
+    .kpi-card:nth-child(2) .kpi-label { color: var(--violet); }
+    .kpi-card:nth-child(3) .kpi-label { color: var(--amber); }
+    .kpi-card:nth-child(4) .kpi-label { color: var(--green); }
+
+    .kpi-value {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 6px;
     }
+
+    .kpi-card:nth-child(1) .kpi-value { color: var(--cyan); }
+    .kpi-card:nth-child(2) .kpi-value { color: var(--violet); }
+    .kpi-card:nth-child(3) .kpi-value { color: var(--amber); }
+    .kpi-card:nth-child(4) .kpi-value { color: var(--green); }
+
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .kpi-bar-track {
+      height: 4px;
+      background: var(--bg-elevated);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .kpi-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .kpi-card:nth-child(1) .kpi-bar-fill { background: var(--cyan); }
+    .kpi-card:nth-child(2) .kpi-bar-fill { background: var(--violet); }
+    .kpi-card:nth-child(3) .kpi-bar-fill { background: var(--amber); }
+    .kpi-card:nth-child(4) .kpi-bar-fill { background: var(--green); }
+
+    /* ══════════════════════════════════════════════
+       TABS
+    ══════════════════════════════════════════════ */
+    .tabs-bar {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      background: transparent;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .tab-btn.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .tab-badge {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-light);
+      color: var(--text-muted);
+      font-size: 10px;
+      padding: 1px 7px;
+      border-radius: 10px;
+    }
+
+    .tab-btn.active .tab-badge {
+      background: rgba(34, 211, 238, 0.15);
+      border-color: rgba(34, 211, 238, 0.3);
+      color: var(--cyan);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ══════════════════════════════════════════════
+       SURFACE CARDS
+    ══════════════════════════════════════════════ */
+    .surface {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .surface-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .surface-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-primary);
+    }
+
+    /* ══════════════════════════════════════════════
+       TABLA DE PROYECTOS
+    ══════════════════════════════════════════════ */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table td {
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .data-table tbody tr:hover td { background: var(--bg-hover); }
+    .data-table tbody tr:last-child td { border-bottom: 0; }
+
+    .data-table td:first-child { color: var(--text-primary); font-weight: 500; }
 
     .badge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-activo { background: rgba(52, 211, 153, 0.15); color: var(--green); border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-pausado { background: rgba(251, 191, 36, 0.15); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.3); }
+    .badge-cerrado { background: rgba(248, 113, 113, 0.15); color: var(--red); border: 1px solid rgba(248, 113, 113, 0.3); }
+
+    .badge-sustentada { background: rgba(52, 211, 153, 0.15); color: var(--green); border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-refutada   { background: rgba(248, 113, 113, 0.15); color: var(--red); border: 1px solid rgba(248, 113, 113, 0.3); }
+    .badge-pendiente  { background: rgba(100, 116, 139, 0.15); color: var(--text-muted); border: 1px solid var(--border); }
+
+    .row-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-icon {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+
+    .btn-icon:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(34,211,238,0.08); }
+    .btn-icon.danger:hover { border-color: var(--red); color: var(--red); background: rgba(248,113,113,0.08); }
+
+    /* ══════════════════════════════════════════════
+       INDICADORES — PROGRESS BARS
+    ══════════════════════════════════════════════ */
+    .ind-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .ind-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      transition: border-color 0.2s;
+    }
+
+    .ind-item:hover { border-color: var(--border-light); }
+
+    .ind-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .ind-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+    .ind-pct {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .ind-track {
+      height: 6px;
+      background: var(--bg-base);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .ind-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .ind-meta { font-size: 11px; color: var(--text-muted); }
+
+    /* ══════════════════════════════════════════════
+       AFIRMACIONES
+    ══════════════════════════════════════════════ */
+    .afirm-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .afirm-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      transition: border-color 0.2s;
+    }
+
+    .afirm-item:hover { border-color: var(--border-light); }
+    .afirm-item.procesando { border-color: #7c3aed; animation: pulse-border 1.5s infinite; }
+
+    @keyframes pulse-border {
+      0%,100% { border-color: #7c3aed; box-shadow: 0 0 0 0 rgba(124,58,237,0.15); }
+      50% { border-color: #a78bfa; box-shadow: 0 0 0 4px rgba(124,58,237,0.08); }
+    }
+
+    .afirm-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+    .afirm-body { flex: 1; }
+    .afirm-texto { font-size: 13px; color: var(--text-primary); line-height: 1.5; margin-bottom: 6px; }
+    .afirm-meta { font-size: 11px; color: var(--text-muted); }
+
+    /* Razonamiento del Agente 01 */
+    .afirm-razonamiento {
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: rgba(124,58,237,0.08);
+      border-left: 3px solid #7c3aed;
+      border-radius: 0 6px 6px 0;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .afirm-razonamiento .raz-label {
+      font-weight: 600;
+      color: #a78bfa;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .afirm-razonamiento .raz-fuente {
+      margin-top: 6px;
       font-size: 11px;
+    }
+    .afirm-razonamiento .raz-fuente a {
+      color: #60a5fa;
+      text-decoration: underline;
+      word-break: break-all;
+    }
+    .afirm-confianza-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+    }
+    .afirm-confianza-bar .bar-track {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .afirm-confianza-bar .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.6s ease;
+    }
+    .afirm-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .btn-agente {
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-agente:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-agente:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-agente .spinner {
+      width: 10px; height: 10px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    .btn-contrastar-todas {
+      background: linear-gradient(135deg, #7c3aed, #5b21b6);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-contrastar-todas:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-contrastar-todas:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ══════════════════════════════════════════════
+       CHART SECTION
+    ══════════════════════════════════════════════ */
+    .g2-chart {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 1.25rem;
+    }
+
+    @media (max-width: 720px) { .g2-chart { grid-template-columns: 1fr; } }
+
+    .chart-wrap { position: relative; height: 240px; }
+
+    /* ══════════════════════════════════════════════
+       DATASET UPLOAD
+    ══════════════════════════════════════════════ */
+    .upload-zone {
+      border: 2px dashed var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 1.25rem;
+    }
+
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--cyan);
+      background: rgba(34, 211, 238, 0.04);
+    }
+
+    .upload-icon { font-size: 36px; margin-bottom: 12px; }
+    .upload-label { font-size: 14px; color: var(--text-secondary); margin-bottom: 6px; }
+    .upload-hint { font-size: 12px; color: var(--text-muted); }
+
+    /* ══════════════════════════════════════════════
+       FORMS / MODALS
+    ══════════════════════════════════════════════ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 7, 14, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      width: 100%;
+      max-width: 500px;
+      transform: translateY(20px);
+      transition: transform 0.2s;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-title { font-size: 16px; font-weight: 700; }
+
+    .modal-close {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.15s;
+    }
+
+    .modal-close:hover { border-color: var(--red); color: var(--red); }
+
+    .form-group { margin-bottom: 1rem; }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-textarea, .form-select {
+      width: 100%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-light);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--cyan); }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ══════════════════════════════════════════════
+       EMPTY STATES
+    ══════════════════════════════════════════════ */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+    }
+
+    .empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state-text { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; }
+
+    /* ══════════════════════════════════════════════
+       TOAST
+    ══════════════════════════════════════════════ */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 13px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      animation: slide-in 0.3s ease;
+      max-width: 340px;
+    }
+
+    .toast.success { border-left: 3px solid var(--green); }
+    .toast.error   { border-left: 3px solid var(--red); }
+    .toast.info    { border-left: 3px solid var(--cyan); }
+
+    @keyframes slide-in {
+      from { transform: translateX(60px); opacity: 0; }
+      to   { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ══════════════════════════════════════════════
+       ANALYSIS RESULT
+    ══════════════════════════════════════════════ */
+    .analysis-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .analysis-table th {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .analysis-table td {
+      padding: 7px 10px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .analysis-table tbody tr:last-child td { border-bottom: 0; }
+    .analysis-table td:first-child { color: var(--text-primary); font-family: var(--font-mono); font-size: 11px; }
+
+    .rec-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .rec-list li {
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+      background: var(--bg-elevated);
+      border-radius: 6px;
+      border-left: 3px solid var(--cyan);
+      line-height: 1.5;
+    }
+
+    /* ══════════════════════════════════════════════
+       SPINNER
+    ══════════════════════════════════════════════ */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ══════════════════════════════════════════════
+       MISC
+    ══════════════════════════════════════════════ */
+    .text-cyan   { color: var(--cyan); }
+    .text-violet { color: var(--violet); }
+    .text-amber  { color: var(--amber); }
+    .text-green  { color: var(--green); }
+    .text-red    { color: var(--red); }
+    .text-muted  { color: var(--text-muted); }
+
+    .mono { font-family: var(--font-mono); }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1.25rem 0;
+    }
+
+    .tag-tipo {
+      font-size: 10px;
       padding: 2px 8px;
       border-radius: 4px;
-      font-family: 'SF Mono', 'Fira Code', monospace
-    }
-
-    .bar-track {
-      height: 5px;
-      background: #1e2435;
-      border-radius: 3px;
-      flex: 1
-    }
-
-    .bar-fill {
-      height: 5px;
-      border-radius: 3px
-    }
-
-    .sel-dd {
-      padding: 6px 10px;
-      background: #0f1117;
-      border: 1px solid #1e2435;
-      color: #e2e8f0;
-      border-radius: 6px;
-      font-size: 12px;
-      font-family: 'SF Mono', monospace;
-      margin-bottom: 10px
-    }
-
-    @media(max-width:700px) {
-
-      .g4,
-      .g3 {
-        grid-template-columns: repeat(2, 1fr)
-      }
-
-      .g2 {
-        grid-template-columns: 1fr
-      }
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
     }
   </style>
 </head>
 
 <body>
-  <div class="shell">
-    <div class="header">
-      <div class="header-top">
-        <div class="header-left">
-          <h1>RISK METER DASHBOARD</h1>
-          <p>Dashboard Interactivo de Riesgo Financiero &nbsp;·&nbsp; Daniel Avila Otalora - Jhon Alexander Ocampo Gómez
-          </p>
-        </div>
-        <div class="ts" id="ts">Esperando datos...</div>
-      </div>
-      <div class="form-panel">
-        <div class="form-grp" style="flex:2">
-          <label>Tickers (separados por coma)</label>
-          <input type="text" id="inp-tickers" class="form-input" value="AAPL, MSFT, GOOGL, AMZN, TSLA">
-        </div>
-        <div class="form-grp" style="flex:1">
-          <label>Benchmark</label>
-          <select id="inp-bench" class="form-input" style="font-family:inherit">
-            <option value="^GSPC">S&P 500 (^GSPC)</option>
-            <option value="^DJI">Dow Jones (^DJI)</option>
-            <option value="^IXIC">NASDAQ (^IXIC)</option>
-          </select>
-        </div>
-        <div class="form-grp" style="flex:1">
-          <label>Período</label>
-          <select id="inp-per" class="form-input" style="font-family:inherit">
-            <option value="1y">1 Año</option>
-            <option value="2y" selected>2 Años</option>
-            <option value="5y">5 Años</option>
-          </select>
-        </div>
-        <div class="form-grp">
-          <button id="btn-analizar" class="btn-analizar" onclick="loadData()">Analizar</button>
-        </div>
+
+<!-- ══ TOPBAR ════════════════════════════════════════ -->
+<nav class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-icon">🛰️</div>
+      <div class="brand-text">
+        <h1>VIGÍA</h1>
+        <p>Red de Monitoreo Estadístico · USTA</p>
       </div>
     </div>
-
-    <div class="tabs">
-      <button class="tab act" onclick="sw('perf',this)">Rendimiento</button>
-      <button class="tab" onclick="sw('sig',this)">Señales</button>
-      <button class="tab" onclick="sw('risk',this)">Riesgo</button>
-      <button class="tab" onclick="sw('vol',this)">Volatilidad</button>
-      <button class="tab" onclick="sw('optim',this)">Optimización</button>
-      <button class="tab" onclick="sw('fixed',this)">Renta Fija</button>
-      <button class="tab" onclick="sw('deriv',this)">Derivados</button>
-      <button class="tab" onclick="sw('ml',this)">IA Predictiva</button>
+    <div class="topbar-right">
+      <div class="status-pill">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-label">API activa</span>
+      </div>
+      <button class="btn-login" id="btn-auth" onclick="toggleLoginModal()">
+        🔑 Iniciar sesión
+      </button>
     </div>
+  </div>
+</nav>
 
-    <div id="s-perf"></div>
-    <div id="s-sig" style="display:none"></div>
-    <div id="s-risk" style="display:none"></div>
-    <div id="s-vol" style="display:none"></div>
-    <div id="s-optim" style="display:none"></div>
-    <div id="s-fixed" style="display:none"></div>
-    <div id="s-deriv" style="display:none"></div>
-    <div id="s-ml" style="display:none"></div>
+<!-- ══ MAIN ══════════════════════════════════════════ -->
+<main class="shell">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-left">
+      <h2>Panel de Monitoreo</h2>
+      <p>Selecciona un proyecto para ver sus índices y métricas de impacto</p>
+    </div>
+    <div class="hero-controls">
+      <select class="select-proyecto" id="select-proyecto" onchange="cargarProyecto()">
+        <option value="">— Selecciona un proyecto —</option>
+      </select>
+      <button class="btn-primary" id="btn-nuevo-proyecto" onclick="openModal('modal-proyecto')">
+        ＋ Nuevo Proyecto
+      </button>
+      <button class="btn-secondary" onclick="refreshAll()">⟳ Actualizar</button>
+    </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
-  <script>
-    /* ── GLOBAL STATE ─────────────────────────────────── */
-    let GLOBAL = null;
-    let charts = {};
-
-    /* ── UTILS ────────────────────────────────────────── */
-    const pct = (v, d = 2) => (v * 100).toFixed(d) + '%';
-    const pctS = (v, d = 2) => (v >= 0 ? '+' : '') + pct(v, d);
-    const f1 = v => v.toFixed(1), f2 = v => v.toFixed(2), f3 = v => v.toFixed(3);
-    const tc = '#cbd5e1', gc = 'rgba(255,255,255,.05)';
-    const axBase = { grid: { color: gc }, ticks: { color: tc, font: { size: 11, family: "'Inter', sans-serif" } } };
-    const CLRS = ['#22d3ee', '#818cf8', '#fbbf24', '#3dd32c', '#f472b6', '#a78bfa', '#fb923c', '#3dd32c'];
-    const sigCls = s => s.includes('COMPRA') ? 'sb' : s.includes('VENDE') ? 'ss' : 'sn';
-    function regCh(id, c) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(id, c) }
-    const step = a => { const s = Math.ceil(a.length / 120); return a.filter((_, i) => i % s === 0) };
-
-    /* Escala de colores Viridis: Morado oscuro -> Azul -> Verde -> Amarillo */
-    function sharpeColor(sr, minSr, maxSr) {
-      let t = maxSr === minSr ? 0.5 : (sr - minSr) / (maxSr - minSr);
-      t = Math.max(0, Math.min(1, t));
-      // Paleta Viridis de 5 paradas
-      const stops = [
-        [68,  1,   84],   // t=0.00 morado oscuro
-        [59,  82,  139],  // t=0.25 azul
-        [33,  145, 140],  // t=0.50 teal
-        [94,  201, 98],   // t=0.75 verde
-        [253, 231, 37]    // t=1.00 amarillo
-      ];
-      const seg = t * (stops.length - 1);
-      const lo = Math.floor(seg), hi = Math.min(lo + 1, stops.length - 1);
-      const f = seg - lo;
-      const r = Math.round(stops[lo][0] + f * (stops[hi][0] - stops[lo][0]));
-      const g = Math.round(stops[lo][1] + f * (stops[hi][1] - stops[lo][1]));
-      const b = Math.round(stops[lo][2] + f * (stops[hi][2] - stops[lo][2]));
-      return `rgba(${r},${g},${b},0.85)`;
-    }
-
-    /* ── API CALLS ────────────────────────────────────── */
-    async function api(path, p = {}, method = 'GET', body = null, signal = null) {
-      let url = new URL(path, window.location.origin);
-      Object.keys(p).forEach(k => url.searchParams.append(k, p[k]));
-      let opt = { method, headers: { 'Content-Type': 'application/json' } };
-      if (body) opt.body = JSON.stringify(body);
-      if (signal) opt.signal = signal;
-      let res = await fetch(url, opt);
-      if (!res.ok) throw new Error(`API ${res.status}: ` + (await res.text()).slice(0, 200));
-      return await res.json();
-    }
-
-    async function loadData() {
-      const btn = document.getElementById('btn-analizar');
-      const ts = document.getElementById('ts');
-      btn.innerText = "Calculando..."; btn.disabled = true;
-      ts.innerHTML = "Preparando consulta...";
-      try {
-        const rawT = document.getElementById('inp-tickers').value.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
-        if (rawT.length < 2) throw new Error("Mínimo 2 tickers requeridos");
-        const per = document.getElementById('inp-per').value;
-        let w = rawT.map(() => parseFloat((1.0 / rawT.length).toFixed(4)));
-        w[0] += (1.0 - w.reduce((a, b) => a + b, 0));
-
-        // Fase 1: Endpoints de portafolio (secuenciales para no saturar Yahoo Finance)
-        ts.innerHTML = "[1/4] Calculando CAPM y rendimiento vs benchmark...";
-        const capm = await api('/capm', { tickers: rawT.join(','), periodo: per });
-
-        ts.innerHTML = "[2/4] Calculando VaR, CVaR y frontera eficiente...";
-        const macro = await api('/macro', { tickers: rawT.join(','), pesos: w.join(','), periodo: per });
-        const varData = await api('/var', {}, 'POST', { tickers: rawT, pesos: w, nivel_confianza: 0.95, periodo: per });
-        const front = await api('/frontera-eficiente', {}, 'POST', { tickers: rawT, pesos: w, nivel_confianza: 0.95, periodo: per });
-
-        // Fase 2: Endpoints individuales por ticker (secuenciales)
-        ts.innerHTML = "[3/4] Descargando precios, rendimientos e indicadores...";
-        let rends = [], ind = [], precios = [];
-        for (let i = 0; i < rawT.length; i++) {
-          ts.innerHTML = `[3/4] Procesando ${rawT[i]} (${i + 1}/${rawT.length})...`;
-          rends.push(await api(`/rendimientos/${rawT[i]}`, { periodo: per }));
-          ind.push(await api(`/indicadores/${rawT[i]}`, { periodo: per }));
-          precios.push(await api(`/precios/${rawT[i]}`, { periodo: per }));
-        }
-
-        // Fase 3: Alertas + GARCH + Benchmark
-        ts.innerHTML = "[4/5] Generando señales técnicas y datos de benchmark...";
-        const alertas = await api('/alertas', { tickers: rawT.join(','), periodo: per });
-        let garch = null;
-        let benchRends = null;
-        try { garch = await api(`/garch/${rawT[0]}`, { periodo: per }) } catch (e) { console.warn('GARCH:', e.message); }
-        try { benchRends = await api(`/rendimientos/${encodeURIComponent(capm.benchmark)}`, { periodo: per }) } catch (e) { console.warn('Benchmark rends:', e.message); }
-
-        // Fase 4: Nuevos Módulos (Renta Fija)
-        ts.innerHTML = "[5/5] Descargando curva de renta fija (Nelson-Siegel)...";
-        let fixed = null;
-        try { fixed = await api('/renta-fija/curva') } catch (e) { console.warn('Renta Fija:', e.message); }
-
-        GLOBAL = { 
-          tickers: rawT, 
-          pesos: w, 
-          capm, 
-          macro, 
-          alertas, 
-          varData, 
-          front, 
-          rends, 
-          ind, 
-          precios, 
-          garch, 
-          volData: {}, 
-          benchRends,
-          fixed
-        };
-        ts.innerHTML = `<span style="color:#10b981">●</span> Sincronizado &nbsp;·&nbsp; ${new Date().toLocaleTimeString('es-CO')}`;
-        let act = document.querySelector('.tab.act');
-        if (act) sw(act.getAttribute('onclick').match(/'([^']+)'/)[1], act);
-      } catch (err) {
-        console.error(err);
-        let msg = err.message;
-        if (msg.includes("Yahoo Finance")) {
-          msg += " (Probable bloqueo temporal de IP. Intenta usar una VPN o espera 2-5 minutos).";
-        }
-        ts.innerHTML = `<span style="color:#f87171">Error: ${msg}</span>`;
-      } finally {
-        btn.innerText = "Analizar"; btn.disabled = false;
-      }
-    }
-
-    function validarPesos() {
-      const inputs = document.querySelectorAll('.w-input');
-      let total = 0;
-      inputs.forEach(i => total += (parseFloat(i.value) || 0));
-
-      const valEl = document.getElementById('sum-val');
-      const barEl = document.getElementById('sum-bar');
-      const btnEl = document.getElementById('btn-aplicar');
-
-      if (valEl) valEl.innerText = total.toFixed(1);
-      if (barEl) {
-        barEl.style.width = Math.min(total, 100) + '%';
-        barEl.style.backgroundColor = total > 100.1 ? '#ef4444' : (total > 99.9 ? '#3dd32c' : '#3b82f6');
-      }
-      if (btnEl) btnEl.disabled = total > 100.1;
-    }
-
-    async function aplicarPesos() {
-      const inputs = document.querySelectorAll('.w-input');
-      let vals = Array.from(inputs).map(i => parseFloat(i.value) || 0);
-      let total = vals.reduce((a, b) => a + b, 0);
-
-      // Auto-completar/Normalizar si es necesario
-      if (total > 0 && total < 100) {
-        vals = vals.map(v => (v / total));
-      } else {
-        vals = vals.map(v => v / 100);
-      }
-
-      GLOBAL.pesos = vals;
-      const ts = document.getElementById('ts');
-      ts.style.display = 'block';
-      ts.innerText = "Recalculando métricas con nuevos pesos...";
-
-      try {
-        const tickersArr = GLOBAL.tickers;
-        const tickersStr = tickersArr.join(',');
-        const per = document.getElementById('inp-per').value;
-        const pesosStr = vals.map(v => v.toFixed(4)).join(',');
-
-        // /var y /frontera-eficiente son POST con body JSON
-        const [macro, varData, front] = await Promise.all([
-          api('/macro', { tickers: tickersStr, pesos: pesosStr, periodo: per }),
-          api('/var', {}, 'POST', { tickers: tickersArr, pesos: vals, nivel_confianza: 0.95, periodo: per }),
-          api('/frontera-eficiente', {}, 'POST', { tickers: tickersArr, pesos: vals, nivel_confianza: 0.95, periodo: per })
-        ]);
-
-        GLOBAL.macro = macro;
-        GLOBAL.varData = varData;
-        GLOBAL.front = front;
-
-        // Limpiar caché de volatilidad ya que el portafolio cambió (opcional, pero mejor refrescar vistas)
-        renderPerf();
-        renderRisk();
-        renderOptim();
-        ts.style.display = 'none';
-      } catch (e) {
-        ts.innerText = "Error recalculando: " + e.message;
-        setTimeout(() => ts.style.display = 'none', 3000);
-      }
-    }
-
-    function resetearPesos() {
-      if (!GLOBAL) return;
-      const inputs = document.querySelectorAll('.w-input');
-      const n = inputs.length;
-      if (n === 0) return;
-
-      // Peso igualitario: 100/n redondeado a 1 decimal
-      const pesoIgual = parseFloat((100 / n).toFixed(1));
-      // El último absorbe el residuo para que sumen exactamente 100
-      const residuo = parseFloat((100 - pesoIgual * (n - 1)).toFixed(1));
-
-      inputs.forEach((inp, i) => {
-        inp.value = (i === n - 1) ? residuo : pesoIgual;
-      });
-
-      // Feedback visual: destella la barra de suma
-      validarPesos();
-      const bar = document.getElementById('sum-bar');
-      if (bar) {
-        bar.style.transition = 'none';
-        bar.style.opacity = '0.3';
-        setTimeout(() => {
-          bar.style.transition = 'width .3s, background-color .3s, opacity .3s';
-          bar.style.opacity = '1';
-        }, 80);
-      }
-    }
-
-    /* ══ A. RENDIMIENTO ═══════════════════════════════════ */
-    function renderPerf() {
-      if (!GLOBAL) return;
-      const el = document.getElementById('s-perf');
-      const m = GLOBAL.macro, c = GLOBAL.capm;
-      const pd = m.desempeno_portafolio, bd = m.desempeno_benchmark;
-
-      const selIdx = document.getElementById('dd-price')?.value || 0;
-      const ticker = GLOBAL.tickers[selIdx];
-
-      el.innerHTML = `
-    <div class="g4">
-      <div class="mc"><div class="ml">Retorno portafolio</div><div class="mv">${pctS(pd.rendimiento_anualizado)}</div><div class="ms">benchmark: ${pctS(bd.rendimiento_anualizado)}</div></div>
-      <div class="mc"><div class="ml">Ratio de Sharpe</div><div class="mv">${f3(pd.sharpe_ratio)}</div><div class="ms">benchmark: ${f3(bd.sharpe_ratio)}</div></div>
-      <div class="mc"><div class="ml">Tracking Error</div><div class="mv">${pct(m.tracking_error)}</div><div class="ms">Info Ratio: ${f2(m.information_ratio)}</div></div>
-      <div class="mc"><div class="ml">Alpha de Jensen</div><div class="mv">${pctS(m.alpha_jensen)}</div><div class="ms">exceso anual vs CAPM</div></div>
+  <!-- KPI: 4 Índices Vigía -->
+  <div class="indices-grid" id="indices-grid">
+    <div class="kpi-card" id="kpi-avance">
+      <div class="kpi-label">Índice de Avance</div>
+      <div class="kpi-value" id="val-avance">—</div>
+      <div class="kpi-sub" id="sub-avance">Selecciona un proyecto</div>
+      <div class="kpi-bar-track"><div class="kpi-bar-fill" id="bar-avance" style="width:0%"></div></div>
     </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div class="ct" style="margin-bottom:0">Serie de Precios y Medias Móviles</div>
-        <div style="display:flex;gap:10px;align-items:center">
-          <select class="sel-dd" id="dd-sma" onchange="drawPriceChart()" style="width:100px;font-size:11px">
-            <option value="0">Sin SMA</option>
-            <option value="20" selected>SMA 20 (Corto)</option>
-            <option value="50">SMA 50 (Medio)</option>
-            <option value="200">SMA 200 (Largo)</option>
-          </select>
-          <select class="sel-dd" id="dd-ema" onchange="drawPriceChart()" style="width:100px;font-size:11px">
-            <option value="0">Sin EMA</option>
-            <option value="20">EMA 20 (Corto)</option>
-            <option value="50" selected>EMA 50 (Medio)</option>
-            <option value="200">EMA 200 (Largo)</option>
-          </select>
-          <select class="sel-dd" id="dd-price" onchange="renderPerf()" style="width:120px">
-            ${GLOBAL.tickers.map((t, i) => `<option value="${i}" ${i == selIdx ? 'selected' : ''}>${t}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-      <div style="position:relative;height:280px"><canvas id="c-price"></canvas></div>
+    <div class="kpi-card" id="kpi-impacto">
+      <div class="kpi-label">Índice de Impacto</div>
+      <div class="kpi-value" id="val-impacto">—</div>
+      <div class="kpi-sub" id="sub-impacto">Requiere Agente 02</div>
+      <div class="kpi-bar-track"><div class="kpi-bar-fill" id="bar-impacto" style="width:0%"></div></div>
     </div>
-
-      <div class="g2">
-        <div class="card">
-          <div class="ct">Gráfico Q-Q (Teórico vs. Empírico)</div>
-          <div style="position:relative;height:240px"><canvas id="c-qq"></canvas></div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:10px">
-            Si los puntos siguen la línea diagonal, el activo es <strong>Normal</strong>. 
-            Desviaciones en los extremos indican <strong>colas pesadas</strong>.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="ct">Distribución (Boxplot) — Seleccionado</div>
-          <div id="box-cont" style="position:relative;height:240px;width:100%;display:flex;justify-content:center;overflow-x:auto;">
-             <!-- SVG Individual -->
-          </div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:10px;line-height:1.4">
-             Análisis detallado de dispersión y mediana para <strong>${ticker}</strong>.
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="ct">Comparativa de Distribuciones y Outliers (Boxplot) — Portafolio</div>
-        <div id="box-all-cont" style="position:relative;height:300px;width:100%;overflow-x:auto;">
-           <!-- SVG Comparativo -->
-        </div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:10px;line-height:1.4;border-top:1px solid #16202e;padding-top:10px">
-           <strong>Interpretación:</strong> Comparación de rendimientos logarítmicos. Cajas más altas indican mayor volatilidad histórica. Los puntos (stripplot) muestran la densidad de los datos.
-        </div>
-        <div style="font-size:10px;color:#475569;margin-top:5px;text-align:right;font-style:italic">
-           Fuente: Yahoo Finance (Datos Históricos Ajustados)
-        </div>
-      </div>
-
-    <div class="card">
-      <div class="ct">Retorno vs Riesgo por Activo</div>
-      <div style="position:relative;height:220px"><canvas id="c-rr"></canvas></div>
-    </div>`;
-
-      drawPriceChart();
-      validarPesos();
-
-
-      let rrD = GLOBAL.rends.map((r, i) => ({ x: r.estadisticas.volatilidad_anualizada * 100, y: r.estadisticas.media_anualizada * 100, n: r.ticker }));
-      regCh('c-rr', {
-        type: 'scatter', data: { datasets: [{ data: rrD, backgroundColor: CLRS.slice(0, rrD.length), pointRadius: 9, pointHoverRadius: 11 }] },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => { const d = rrD[ctx.dataIndex]; return `${d.n}  σ:${f1(d.x)}%  μ:${f1(d.y)}%` } } } },
-          scales: {
-            x: { ...axBase, title: { display: true, text: 'Volatilidad anual (%)', color: tc, font: { size: 11 } } },
-            y: { ...axBase, title: { display: true, text: 'Retorno anual (%)', color: tc, font: { size: 11 } } }
-          }
-        }
-      });
-    }
-
-    // Funciones dinámicas MA
-    function calcSMA(data, period) {
-      return data.map((val, i, arr) => {
-        if (i < period - 1) return null;
-        let sum = 0;
-        for (let j = 0; j < period; j++) sum += arr[i - j];
-        return sum / period;
-      });
-    }
-
-    function calcEMA(data, period) {
-      if (data.length === 0) return [];
-      const k = 2 / (period + 1);
-      let emaArr = new Array(data.length).fill(null);
-      let initialSmaSum = 0;
-
-      // Seed con SMA
-      for (let i = 0; i < Math.min(period, data.length); i++) {
-        initialSmaSum += data[i];
-      }
-      if (data.length >= period) {
-        emaArr[period - 1] = initialSmaSum / period;
-      }
-
-      for (let i = period; i < data.length; i++) {
-        emaArr[i] = (data[i] - emaArr[i - 1]) * k + emaArr[i - 1];
-      }
-      return emaArr;
-    }
-
-    function drawPriceChart() {
-      if (!GLOBAL || !GLOBAL.precios || GLOBAL.precios.length === 0) return;
-      const dd = document.getElementById('dd-price');
-      if (!dd) return;
-      const idx = parseInt(dd.value) || 0;
-      const px = GLOBAL.precios[idx];
-      const ticker = GLOBAL.tickers[idx];
-      const dates = step(px.precios).map(p => p.fecha);
-      const prices = step(px.precios).map(p => p.precio);
-      const d = GLOBAL.rends[idx]; // Para los otros graficos (Q-Q y Boxplot)
-
-      // Q-Q Plot dinámico
-      if (d && d.qq_plot) {
-        regCh('c-qq', {
-          type: 'scatter',
-          data: {
-            datasets: [
-              { label: 'Puntos Empíricos', data: d.qq_plot.map(p => ({ x: p.teorico, y: p.empirico })), backgroundColor: '#3b82f6', pointRadius: 3 },
-              { label: 'Normal Teórica', data: [{ x: -3, y: -3 }, { x: 3, y: 3 }], type: 'line', borderColor: '#ef4444', borderWidth: 2, pointRadius: 0, fill: false }
-            ]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { ...axBase, title: { display: true, text: 'Cuantil Teórico', color: tc, font: { size: 9 } } },
-              y: { ...axBase, title: { display: true, text: 'Cuantil Empírico', color: tc, font: { size: 9 } } }
-            }
-          }
-        });
-
-        // ── DISEÑO PREMIUM DE BOXPLOTS ──
-        const renderBoxPlot = (containerId, dataList, isSingle = false) => {
-          const allMins = GLOBAL.rends.map(r => r.boxplot.min);
-          const allMaxs = GLOBAL.rends.map(r => r.boxplot.max);
-          const mMin = Math.min(...allMins) * 1.15;
-          const mMax = Math.max(...allMaxs) * 1.15;
-          const rRange = mMax - mMin;
-          const getP = (v) => 90 - ((v - mMin) / rRange) * 80;
-
-          const boxWidth = isSingle ? 120 : 70;
-          const totalW = isSingle ? 260 : Math.max(dataList.length * boxWidth, 500);
-          const margin = 45;
-
-          let svg = `<svg width="100%" height="100%" viewBox="-${margin} 0 ${totalW + margin} 100" preserveAspectRatio="xMidYMid meet" style="font-family:'JetBrains Mono',monospace">`;
-          
-          // 1. Grid Lines (Sutiles)
-          for (let i = 0; i <= 4; i++) {
-            const val = mMin + (rRange * i / 4);
-            const y = getP(val);
-            svg += `
-              <line x1="0" y1="${y}" x2="${totalW}" y2="${y}" stroke="#1e293b" stroke-width="0.5" stroke-dasharray="2,2" />
-              <text x="-8" y="${y + 1.5}" fill="#f8fafc" font-size="4.5" text-anchor="end">${pct(val, 1)}</text>
-            `;
-          }
-
-          // 2. Dibujar cada activo
-          dataList.forEach((r, i) => {
-            const b = r.boxplot;
-            const xCent = isSingle ? totalW / 2 : (i * boxWidth) + (boxWidth / 2);
-            const bw = isSingle ? 60 : boxWidth * 0.45;
-            const color = CLRS[i % CLRS.length];
-            const isFerxxo = r.ticker === ticker; // Resaltar el seleccionado
-            const finalColor = isSingle ? '#3dd32c' : color;
-
-            // Puntos (Stripplot)
-            const sample = r.rendimientos.slice(-120);
-            sample.forEach(pt => {
-              const jitter = (Math.random() - 0.5) * (bw * 0.7);
-              svg += `<circle cx="${xCent + jitter}" cy="${getP(pt.rendimiento_log)}" r="0.75" fill="${finalColor}" fill-opacity="0.3" />`;
-            });
-
-            // Whiskers (Bigotes) con terminaciones en T
-            svg += `
-              <line x1="${xCent}" y1="${getP(b.min)}" x2="${xCent}" y2="${getP(b.max)}" stroke="#64748b" stroke-width="0.8" />
-              <line x1="${xCent - bw/4}" y1="${getP(b.min)}" x2="${xCent + bw/4}" y2="${getP(b.min)}" stroke="#64748b" stroke-width="0.8" />
-              <line x1="${xCent - bw/4}" y1="${getP(b.max)}" x2="${xCent + bw/4}" y2="${getP(b.max)}" stroke="#64748b" stroke-width="0.8" />
-            `;
-
-            // Caja (Interquartile Range)
-            const q3Y = getP(b.q3), q1Y = getP(b.q1);
-            svg += `
-              <rect x="${xCent - bw/2}" y="${q3Y}" width="${bw}" height="${Math.abs(q1Y - q3Y)}" 
-                fill="${finalColor}15" stroke="${finalColor}" stroke-width="${isSingle ? 2 : 1.2}" rx="1" />
-              <line x1="${xCent - bw/2}" y1="${getP(b.med)}" x2="${xCent + bw/2}" y2="${getP(b.med)}" stroke="#ffffff" stroke-width="${isSingle ? 3 : 2}" />
-            `;
-
-            // Label Ticker
-            svg += `<text x="${xCent}" y="96" fill="${isSingle ? '#ffffff' : '#94a3b8'}" font-size="${isSingle ? 6 : 4.5}" font-weight="400" text-anchor="middle">${r.ticker}</text>`;
-          });
-
-          svg += `</svg>`;
-          document.getElementById(containerId).innerHTML = svg;
-        };
-
-        renderBoxPlot('box-cont', [GLOBAL.rends[idx]], true);
-        renderBoxPlot('box-all-cont', GLOBAL.rends, false);
-      }
-
-      // SMA / EMA dinámicos
-      const smaP = parseInt(document.getElementById('dd-sma').value) || 0;
-      const emaP = parseInt(document.getElementById('dd-ema').value) || 0;
-
-      const rawPrices = px.precios.map(p => p.precio);
-      let smaData = [], emaData = [];
-
-      if (smaP > 0) {
-        const fullSma = calcSMA(rawPrices, smaP);
-        smaData = step(fullSma.map((val, i) => ({ fecha: px.precios[i].fecha, precio: val }))).map(p => p.precio);
-      }
-      if (emaP > 0) {
-        const fullEma = calcEMA(rawPrices, emaP);
-        emaData = step(fullEma.map((val, i) => ({ fecha: px.precios[i].fecha, precio: val }))).map(p => p.precio);
-      }
-
-      const datasets = [
-        { label: `${ticker} Precio`, data: prices, borderColor: CLRS[idx % CLRS.length], borderWidth: 2, pointRadius: 0, fill: false, tension: .2 }
-      ];
-      if (smaP > 0) {
-        datasets.push({ label: `SMA ${smaP}`, data: smaData, borderColor: '#f59e0b', borderWidth: 1.3, pointRadius: 0, borderDash: [4, 2], fill: false, tension: .2 });
-      }
-      if (emaP > 0) {
-        datasets.push({ label: `EMA ${emaP}`, data: emaData, borderColor: '#ef4444', borderWidth: 1.5, pointRadius: 0, borderDash: [6, 3], fill: false, tension: .2 });
-      }
-
-      regCh('c-price', {
-        type: 'line', data: {
-          labels: dates, datasets: datasets
-        }, options: {
-          responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { display: true, position: 'top', align: 'end', labels: { color: '#ffffff', font: { size: 11 }, boxWidth: 12, usePointStyle: true } } },
-          scales: {
-            x: {
-              ...axBase,
-              ticks: {
-                ...axBase.ticks,
-                autoSkip: true,
-                maxTicksLimit: 12, // Aproximadamente una etiqueta por mes en un año
-                maxRotation: 0,
-                callback: function(val, index) {
-                  const dateStr = this.getLabelForValue(val);
-                  const d = new Date(dateStr);
-                  const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-                  return meses[d.getUTCMonth()] + " " + d.getUTCFullYear();
-                }
-              }
-            },
-            y: { ...axBase, ticks: { ...axBase.ticks, callback: v => '$' + v.toFixed(0) } }
-          }
-        }
-      });
-    }
-
-    function drawCapmChart() {
-      if (!GLOBAL || !GLOBAL.benchRends || GLOBAL.rends.length === 0) return;
-      const dd = document.getElementById('dd-capm');
-      if (!dd) return;
-      const idx = parseInt(dd.value) || 0;
-      const assetRends = GLOBAL.rends[idx].rendimientos;
-      const benchRends = GLOBAL.benchRends.rendimientos;
-      const ticker = GLOBAL.tickers[idx];
-
-      let dataPoints = [];
-      let benchMap = {};
-      benchRends.forEach(r => benchMap[r.fecha] = r.rendimiento_log * 100);
-
-      assetRends.forEach(r => {
-        if (benchMap[r.fecha] !== undefined) {
-           dataPoints.push({ x: benchMap[r.fecha], y: r.rendimiento_log * 100 });
-        }
-      });
-
-      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, n = dataPoints.length;
-      if(n === 0) return;
-      dataPoints.forEach(p => { sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumX2 += p.x * p.x; });
-      const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-      const b = (sumY - m * sumX) / n;
-      const minX = Math.min(...dataPoints.map(p => p.x));
-      const maxX = Math.max(...dataPoints.map(p => p.x));
-      const lineData = [
-         { x: minX, y: m * minX + b },
-         { x: maxX, y: m * maxX + b }
-      ];
-
-      regCh('c-capm', {
-        type: 'scatter',
-        data: {
-          datasets: [
-            {
-              label: 'Dispersión',
-              data: dataPoints,
-              backgroundColor: CLRS[idx % CLRS.length],
-              pointRadius: 3,
-              pointHoverRadius: 5
-            },
-            {
-              label: `Regresión (β ≈ ${m.toFixed(2)})`,
-              data: lineData,
-              type: 'line',
-              borderColor: '#ef4444',
-              borderWidth: 2,
-              pointRadius: 0,
-              fill: false
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: true, labels: { color: tc } } },
-          scales: {
-            x: { ...axBase, title: { display: true, text: `Retorno ${GLOBAL.capm.benchmark} (%)`, color: tc, font: { size: 11 } } },
-            y: { ...axBase, title: { display: true, text: `Retorno ${ticker} (%)`, color: tc, font: { size: 11 } } }
-          }
-        }
-      });
-    }
-
-    /* ══ B. RIESGO ════════════════════════════════════════ */
-    function renderRisk() {
-      if (!GLOBAL) return;
-      const el = document.getElementById('s-risk');
-      const pd = GLOBAL.macro.desempeno_portafolio;
-      const bd = GLOBAL.macro.desempeno_benchmark;
-      const v = GLOBAL.varData;
-      const c = GLOBAL.capm;
-      const betaPort = c.activos.reduce((sum, a, i) => sum + (a.beta * GLOBAL.pesos[i]), 0);
-      const cv = v.cvar;
-
-      // ── Adaptación a Perfiles de Riesgo (CAL) ──
-      const opt = GLOBAL.front.portafolio_max_sharpe;
-      const rf = GLOBAL.capm.rf_actual;
-      
-      const pAgresivo = { w: 1, ret: opt.rendimiento_anual, vol: opt.volatilidad_anual };
-      const pModerado = { w: 0.5, ret: 0.5 * opt.rendimiento_anual + 0.5 * rf, vol: 0.5 * opt.volatilidad_anual };
-      const pConservador = { w: 0.2, ret: 0.2 * opt.rendimiento_anual + 0.8 * rf, vol: 0.2 * opt.volatilidad_anual };
-
-      let perfilesHtml = `
-      <div class="card" style="border-color:#818cf8;border-width:1px">
-        <div class="ct" style="color:#818cf8">Línea de Asignación de Capital (CAL) — Adaptación a Perfiles de Riesgo</div>
-        <div style="font-size:12px;color:#94a3b8;line-height:1.5;margin-bottom:15px">
-          El <strong>Portafolio Óptimo (Máximo Sharpe)</strong> es nuestro producto estrella inamovible en renta variable. 
-          Lo que cambia según el perfil de riesgo del cliente no son las acciones que lo componen, sino cuánto capital se le asigna frente al Activo Libre de Riesgo (R<sub>f</sub>: ${pct(rf)}).
-        </div>
-        <div class="g3" style="margin-bottom:0">
-          <div class="mc" style="border-color:#ef4444;margin-bottom:0">
-            <div class="ml" style="color:#ef4444;font-size:13px">🔥 Perfil Agresivo</div>
-            <div style="font-size:12px;color:#e2e8f0;margin-bottom:10px">Apreciación Máxima</div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-              <span style="font-size:11px;color:#64748b">Portafolio Óptimo:</span><span style="font-size:11px;color:#ffffff;font-family:'SF Mono',monospace">100%</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-              <span style="font-size:11px;color:#64748b">Liquidez (R<sub>f</sub>):</span><span style="font-size:11px;color:#ffffff;font-family:'SF Mono',monospace">0%</span>
-            </div>
-            <div style="background:#05080f;padding:8px;border-radius:6px">
-              <div style="display:flex;justify-content:space-between">
-                <span style="font-size:10px;color:#64748b">Retorno Esp.</span><span style="font-size:12px;color:#ef4444;font-family:'SF Mono',monospace;font-weight:700">${pct(pAgresivo.ret)}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-top:4px">
-                <span style="font-size:10px;color:#64748b">Volatilidad</span><span style="font-size:12px;color:#ef4444;font-family:'SF Mono',monospace;font-weight:700">${pct(pAgresivo.vol)}</span>
-              </div>
-            </div>
-            <div style="font-size:10px;color:#94a3b8;margin-top:10px;line-height:1.4">Asume el 100% de la volatilidad del mercado de renta variable.</div>
-          </div>
-
-          <div class="mc" style="border-color:#3b82f6;margin-bottom:0">
-            <div class="ml" style="color:#3b82f6;font-size:13px">⚖️ Perfil Moderado</div>
-            <div style="font-size:12px;color:#e2e8f0;margin-bottom:10px">Crecimiento Equilibrado</div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-              <span style="font-size:11px;color:#64748b">Portafolio Óptimo:</span><span style="font-size:11px;color:#ffffff;font-family:'SF Mono',monospace">50%</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-              <span style="font-size:11px;color:#64748b">Liquidez (R<sub>f</sub>):</span><span style="font-size:11px;color:#ffffff;font-family:'SF Mono',monospace">50%</span>
-            </div>
-            <div style="background:#05080f;padding:8px;border-radius:6px">
-              <div style="display:flex;justify-content:space-between">
-                <span style="font-size:10px;color:#64748b">Retorno Esp.</span><span style="font-size:12px;color:#3b82f6;font-family:'SF Mono',monospace;font-weight:700">${pct(pModerado.ret)}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-top:4px">
-                <span style="font-size:10px;color:#64748b">Volatilidad</span><span style="font-size:12px;color:#3b82f6;font-family:'SF Mono',monospace;font-weight:700">${pct(pModerado.vol)}</span>
-              </div>
-            </div>
-            <div style="font-size:10px;color:#94a3b8;margin-top:10px;line-height:1.4">Reduce la volatilidad (y la exposición al Drawdown) exactamente a la mitad.</div>
-          </div>
-
-          <div class="mc" style="border-color:#3dd32c;margin-bottom:0">
-            <div class="ml" style="color:#3dd32c;font-size:13px">🛡️ Perfil Conservador</div>
-            <div style="font-size:12px;color:#e2e8f0;margin-bottom:10px">Preservación de Capital</div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-              <span style="font-size:11px;color:#64748b">Portafolio Óptimo:</span><span style="font-size:11px;color:#ffffff;font-family:'SF Mono',monospace">20%</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-              <span style="font-size:11px;color:#64748b">Liquidez (R<sub>f</sub>):</span><span style="font-size:11px;color:#ffffff;font-family:'SF Mono',monospace">80%</span>
-            </div>
-            <div style="background:#05080f;padding:8px;border-radius:6px">
-              <div style="display:flex;justify-content:space-between">
-                <span style="font-size:10px;color:#64748b">Retorno Esp.</span><span style="font-size:12px;color:#3dd32c;font-family:'SF Mono',monospace;font-weight:700">${pct(pConservador.ret)}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-top:4px">
-                <span style="font-size:10px;color:#64748b">Volatilidad</span><span style="font-size:12px;color:#3dd32c;font-family:'SF Mono',monospace;font-weight:700">${pct(pConservador.vol)}</span>
-              </div>
-            </div>
-            <div style="font-size:10px;color:#94a3b8;margin-top:10px;line-height:1.4">Volatilidad mínima. Si el mercado cae 30%, el impacto en la cuenta es solo del 6%.</div>
-          </div>
-        </div>
-      </div>
-      `;
-
-      let garchHtml = GLOBAL.garch ? `<div class="card" style="margin-bottom:0">
-        <div class="ct">Pronóstico Volatilidad — ${GLOBAL.garch.mejor_modelo} (${GLOBAL.garch.ticker})</div>
-        <div style="position:relative;height:200px"><canvas id="c-garch"></canvas></div>
-      </div>`: `<div class="card" style="margin-bottom:0;display:flex;align-items:center;justify-content:center"><span style="color:#64748b">Datos GARCH no disponibles</span></div>`;
-
-      el.innerHTML = `
-    <div class="g4">
-      <div class="mc" style="border-color:#FF0000"><div class="ml" style="color:#FF0000">Beta del Portafolio</div><div class="mv" style="color:#FF0000">${f2(betaPort)}</div><div class="ms">Sensibilidad vs ${GLOBAL.capm.benchmark}</div></div>
-      <div class="mc"><div class="ml">VaR (95%) Histórico</div><div class="mv">${pct(v.historico.var_diario)}</div><div class="ms">Exposición máxima diaria</div></div>
-      <div class="mc"><div class="ml">CVaR (95%)</div><div class="mv">${pct(cv.cvar_diario)}</div><div class="ms">Pérdida media en cola</div></div>
-      <div class="mc" style="border-color:#3dd32c"><div class="ml" style="color:#3dd32c">Volatilidad Anual</div><div class="mv">${pct(pd.volatilidad_anualizada)}</div><div class="ms">Riesgo total anualizado</div></div>
+    <div class="kpi-card" id="kpi-capacidad">
+      <div class="kpi-label">Índice de Capacidad</div>
+      <div class="kpi-value" id="val-capacidad">—</div>
+      <div class="kpi-sub" id="sub-capacidad">Selecciona un proyecto</div>
+      <div class="kpi-bar-track"><div class="kpi-bar-fill" id="bar-capacidad" style="width:0%"></div></div>
     </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-        <div class="ct" style="margin-bottom:0">Composición Manual del Portafolio</div>
-        <div id="sum-badge" style="background:#1e2435;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;color:#94a3b8">Total: <span id="sum-val">--</span>%</div>
-      </div>
-      
-      <div class="act-grid">
-        ${GLOBAL.tickers.map((t, i) => {
-        const beta = c.activos.find(x => x.ticker === t)?.beta || 1;
-        const pesoPct = (GLOBAL.pesos[i] * 100).toFixed(1);
-        return `
-          <div class="act-card">
-            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-              <span style="font-weight:700;color:${CLRS[i % CLRS.length]}">${t}</span>
-              <span style="font-size:11px;color:#64748b;font-family:'SF Mono',monospace">β ${f2(beta)}</span>
-            </div>
-            <div style="position:relative">
-              <input type="number" class="w-input" data-idx="${i}" value="${pesoPct}" min="0" max="100" step="0.1" oninput="validarPesos()">
-              <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;color:#64748b">%</span>
-            </div>
-          </div>`;
-      }).join('')}
-      </div>
+    <div class="kpi-card" id="kpi-veracidad">
+      <div class="kpi-label">Índice de Veracidad</div>
+      <div class="kpi-value" id="val-veracidad">—</div>
+      <div class="kpi-sub" id="sub-veracidad">Requiere afirmaciones contrastadas</div>
+      <div class="kpi-bar-track"><div class="kpi-bar-fill" id="bar-veracidad" style="width:0%"></div></div>
+    </div>
+  </div>
 
-      <div class="sum-bar-container">
-        <div id="sum-bar" class="sum-bar-fill" style="width:0%;background:#3b82f6"></div>
+  <!-- Gráficas -->
+  <div class="g2-chart" id="charts-section">
+    <div class="surface" style="margin-bottom:0">
+      <div class="surface-header">
+        <span class="surface-title">📊 Avance por Indicador</span>
       </div>
-
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:11px;color:#64748b;line-height:1.4">
-          * Los pesos se re-normalizarán proporcionalmente al 100% si la suma es menor.<br>
-          * Volatilidad anual portafolio manual: <span style="font-family:'SF Mono',monospace;color:#94a3b8">${pct(pd.volatilidad_anualizada)}</span>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button
-            id="btn-restaurar"
-            onclick="resetearPesos()"
-            style="
-              background:transparent;
-              color:#94a3b8;
-              border:1px solid #334155;
-              padding:8px 16px;
-              border-radius:8px;
-              font-size:12px;
-              font-weight:600;
-              cursor:pointer;
-              transition:all .2s;
-              display:flex;align-items:center;gap:6px;
-            "
-            onmouseover="this.style.borderColor='#22d3ee';this.style.color='#22d3ee'"
-            onmouseout="this.style.borderColor='#334155';this.style.color='#94a3b8'"
-          >&#8635; Restaurar Iguales</button>
-          <button id="btn-aplicar" class="btn-apply" onclick="aplicarPesos()">Aplicar Composición</button>
-        </div>
+      <div class="chart-wrap">
+        <canvas id="chart-indicadores"></canvas>
       </div>
     </div>
-    
-    ${perfilesHtml}
-    <div class="card" style="margin-top:1.5rem;border-left:4px solid #f59e0b">
-      <div class="ct">5. Backtesting del Modelo VaR (Test de Kupiec)</div>
-      <div class="g2">
-         <div style="background:#0f1117;padding:15px;border-radius:10px">
-            <div style="font-size:11px;color:#64748b;margin-bottom:10px">RECUENTO DE EXCEPCIONES</div>
-            <div class="g2">
-               <div style="text-align:center">
-                  <div style="font-size:10px;color:#94a3b8">Esperadas</div>
-                  <div style="font-size:24px;font-weight:700;color:#e2e8f0">${v.backtesting.excepciones_esperadas}</div>
-               </div>
-               <div style="text-align:center">
-                  <div style="font-size:10px;color:#94a3b8">Reales</div>
-                  <div style="font-size:24px;font-weight:700;color:${v.backtesting.kupiec_valido ? '#3dd32c' : '#f87171'}">${v.backtesting.excepciones_reales}</div>
-               </div>
-            </div>
-         </div>
-         <div style="background:#0f1117;padding:15px;border-radius:10px">
-            <div style="font-size:11px;color:#64748b;margin-bottom:10px">RESULTADO ESTADÍSTICO (POF)</div>
-            <div style="display:flex;justify-content:space-between;align-items:center">
-               <div>
-                  <div style="font-size:10px;color:#94a3b8">p-valor</div>
-                  <div style="font-size:18px;font-family:'SF Mono',monospace;color:#e2e8f0">${v.backtesting.kupiec_p_valor.toFixed(4)}</div>
-               </div>
-               <div class="sig ${v.backtesting.kupiec_valido ? 'sb' : 'ss'}">
-                  ${v.backtesting.kupiec_valido ? '✓ MODELO VÁLIDO' : '✗ RECHAZADO'}
-               </div>
-            </div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:10px">
-               ${v.backtesting.interpretacion}
-            </div>
-         </div>
+    <div class="surface" style="margin-bottom:0">
+      <div class="surface-header">
+        <span class="surface-title">🎯 Estado del Proyecto</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-radar"></canvas>
       </div>
     </div>
-    <div class="g2">
-      <div class="card" style="margin-bottom:0">
-        <div class="ct">Security Market Line (CAPM β)</div>
-        <div style="position:relative;height:240px"><canvas id="c-sml"></canvas></div>
+  </div>
+
+  <!-- ── TABS ── -->
+  <div class="tabs-bar">
+    <button class="tab-btn active" id="tab-proyectos-btn" onclick="switchTab('proyectos')">
+      📁 Proyectos <span class="tab-badge" id="badge-proyectos">0</span>
+    </button>
+    <button class="tab-btn" id="tab-indicadores-btn" onclick="switchTab('indicadores')">
+      📈 Indicadores <span class="tab-badge" id="badge-indicadores">0</span>
+    </button>
+    <button class="tab-btn" id="tab-afirmaciones-btn" onclick="switchTab('afirmaciones')">
+      💬 Afirmaciones <span class="tab-badge" id="badge-afirmaciones">0</span>
+    </button>
+    <button class="tab-btn" id="tab-datasets-btn" onclick="switchTab('datasets')">
+      📂 Datasets
+    </button>
+    <button class="tab-btn" id="tab-alertas-btn" onclick="switchTab('alertas')">
+      🔔 Alertas <span class="tab-badge" id="badge-alertas">0</span>
+    </button>
+  </div>
+
+  <!-- ─── TAB: Proyectos ─── -->
+  <div class="tab-panel active" id="tab-proyectos">
+    <div class="surface">
+      <div class="surface-header">
+        <span class="surface-title">Todos los Proyectos</span>
+        <button class="btn-primary" onclick="openModal('modal-proyecto')">＋ Nuevo</button>
       </div>
-      
-      <div class="card" style="margin-bottom:0">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div class="ct" style="margin-bottom:0">Dispersión de Retornos (CAPM)</div>
-          <select class="sel-dd" id="dd-capm" onchange="drawCapmChart()" style="width:120px">
-            ${GLOBAL.tickers.map((t, i) => `<option value="${i}">${t}</option>`).join('')}
-          </select>
-        </div>
-        <div style="position:relative;height:240px"><canvas id="c-capm"></canvas></div>
-      </div>
-      <div class="card" style="margin-bottom:0">
-        <div class="ct">Interpretación de Sensibilidad (Betas)</div>
-        <div style="overflow-x:auto">
-          <table class="ht" style="font-size:11px;text-align:left">
-            <thead>
-              <tr>
-                <th>Activo</th>
-                <th>Beta</th>
-                <th>Comentario</th>
-                <th>Interpretación</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${c.activos.map(a => {
-                const b = a.beta;
-                const absB = Math.abs(b);
-                const color = b > 1.5 ? '#ef4444' : (b > 1.2 ? '#f59e0b' : (b >= 0.8 ? '#3b82f6' : (b >= 0 ? '#3dd32c' : '#a855f7')));
-                const dir = b > 0.05 ? "Misma dirección" : (b < -0.05 ? "Dir. contraria" : "No afectado");
-                let interp = "";
-                if (absB >= 1.9) interp = "2x más sensible";
-                else if (absB >= 1.4) interp = "Muy sensible";
-                else if (absB >= 0.9 && absB <= 1.1) interp = "Igual al mercado";
-                else if (absB >= 0.4 && absB <= 0.6) interp = "Mitad de sensible";
-                else if (absB < 0.1) interp = "Sin afectación";
-                else interp = `${absB.toFixed(1)}x sensibilidad`;
-
-                return `<tr>
-                  <td style="font-weight:700;color:${color}">${a.ticker}</td>
-                  <td style="font-family:'SF Mono',monospace;font-weight:700;color:${color}">${f2(b)}</td>
-                  <td style="color:${color};font-size:10px">${dir}</td>
-                  <td style="color:#e2e8f0;font-size:10px">${interp}</td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-        <div style="font-size:9px;color:#475569;margin-top:10px;font-style:italic">
-          Fuente: Basado en Gitman & Joehnk, "Fundamentos de inversiones".
-        </div>
-      </div>
-    </div>
-    
-    <div class="card" style="background:rgba(59,130,246,0.05);border:1px dashed #3b82f6">
-      <div class="ct" style="color:#60a5fa">💡 Guía de Interpretación de Riesgo</div>
-      <div class="g2" style="font-size:12px;color:#94a3b8;line-height:1.5">
-        <div>
-          <p><strong style="color:#e2e8f0">VaR (95%):</strong> Con un 95% de confianza, la pérdida máxima esperada en un día no superará este valor. Si el VaR es 2%, solo hay un 5% de probabilidad de perder más del 2% diario.</p>
-          <p style="margin-top:8px"><strong style="color:#e2e8f0">CVaR (Expected Shortfall):</strong> Responde a: <em>"Si superamos el VaR, ¿cuánto perderemos?"</em>. Es el promedio de las pérdidas extremas. Siempre es mayor que el VaR.</p>
-        </div>
-        <div>
-          <p><strong style="color:#e2e8f0">Test de Kupiec:</strong> Valida si el VaR es preciso. Si el p-valor es &lt; 0.05, el número de excepciones es improbable para un modelo preciso (rechazamos el modelo).</p>
-          <p style="margin-top:8px"><strong style="color:#e2e8f0">Beta (β):</strong> Sensibilidad al mercado. β > 1 (Agresivo), β &lt; 1 (Defensivo). Un β de 1.5 indica que el activo varía un 50% más que el índice.</p>
-        </div>
-      </div>
-    </div>`;
-
-      if (GLOBAL.garch) {
-        regCh('c-garch', {
-          type: 'line', data: {
-            labels: Array.from({ length: GLOBAL.garch.pronostico_volatilidad.length }, (_, i) => 'D+' + (i + 1)),
-            datasets: [{ label: 'Volatilidad (%)', data: GLOBAL.garch.pronostico_volatilidad.map(v => v * 100), borderColor: '#f59e0b', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#f59e0b', fill: true, backgroundColor: 'rgba(245,158,11,.07)', tension: .4 }]
-          }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ...axBase }, y: { ...axBase } } }
-        });
-      }
-
-      const betas = c.activos.map(a => a.beta);
-      regCh('c-sml', {
-        type: 'scatter', data: {
-          datasets: [
-            { label: 'SML', data: [{ x: 0, y: c.rf_actual * 100 }, { x: Math.max(...betas) * 1.2, y: (c.rf_actual + (Math.max(...betas) * 1.2) * (c.rendimiento_mercado_anual - c.rf_actual)) * 100 }], type: 'line', borderColor: 'rgba(148,163,184,.5)', borderWidth: 1.5, pointRadius: 0, borderDash: [5, 3], fill: false },
-            { label: 'Activos', data: c.activos.map(a => ({ x: a.beta, y: a.rendimiento_esperado_capm * 100 })), backgroundColor: CLRS.slice(0, betas.length), pointRadius: 9, pointHoverRadius: 11 }
-          ]
-        }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => { if (ctx.datasetIndex === 1) { const a = c.activos[ctx.dataIndex]; return `${a.ticker} β:${f2(a.beta)} Ret:${f1(a.rendimiento_esperado_capm * 100)}%` } return '' } } } }, scales: { x: { ...axBase, title: { display: true, text: 'Beta (β)', color: tc } }, y: { ...axBase, title: { display: true, text: 'Retorno CAPM (%)', color: tc } } } }
-      });
-      
-      // Draw the CAPM chart initially
-      drawCapmChart();
-    }
-
-    /* ══ C. OPTIMIZACIÓN ══════════════════════════════════ */
-    function renderOptim() {
-      if (!GLOBAL) return;
-      const el = document.getElementById('s-optim');
-      const f = GLOBAL.front;
-      const mv = f.portafolio_min_varianza;
-      const ms = f.portafolio_max_sharpe;
-      const crM = f.matriz_correlacion;
-
-      el.innerHTML = `
-    <div class="g2">
-      <div class="card" style="border-color:#3dd32c;margin-bottom:0">
-        <div class="ct" style="color:#3dd32c">Portafolio Mínima Varianza ★</div>
-        <div style="font-size:13px;font-family:'SF Mono',monospace;color:#94a3b8;margin-bottom:12px">Vol <span style="color:#3dd32c;font-weight:600">${pct(mv.volatilidad_anual)}</span> &nbsp; Ret ${pctS(mv.rendimiento_anual)} &nbsp; Sharpe ${f2(mv.sharpe_ratio)}</div>
-        ${mv.tickers.map((t, i) => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid #1e2435"><span style="color:#94a3b8">${t}</span><div style="display:flex;align-items:center;gap:7px"><div style="width:${mv.pesos[i] * 100}px;height:4px;background:#3dd32c;border-radius:2px"></div><span style="font-family:'SF Mono',monospace;min-width:38px;text-align:right">${pct(mv.pesos[i])}</span></div></div>`).join('')}
-      </div>
-      <div class="card" style="border-color:#f59e0b;margin-bottom:0">
-        <div class="ct" style="color:#f59e0b">Portafolio Máximo Sharpe ★</div>
-        <div style="font-size:13px;font-family:'SF Mono',monospace;color:#94a3b8;margin-bottom:12px">Vol <span style="color:#f59e0b;font-weight:600">${pct(ms.volatilidad_anual)}</span> &nbsp; Ret ${pctS(ms.rendimiento_anual)} &nbsp; Sharpe ${f2(ms.sharpe_ratio)}</div>
-        ${ms.tickers.map((t, i) => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid #1e2435"><span style="color:#94a3b8">${t}</span><div style="display:flex;align-items:center;gap:7px"><div style="width:${ms.pesos[i] * 100}px;height:4px;background:#f59e0b;border-radius:2px"></div><span style="font-family:'SF Mono',monospace;min-width:38px;text-align:right">${pct(ms.pesos[i])}</span></div></div>`).join('')}
-      </div>
-    </div>
-    <div class="card">
-      <div class="ct">Frontera Eficiente — ${f.n_simulaciones} portafolios simulados</div>
-      <div style="display:flex;gap:12px;align-items:stretch">
-        <div style="position:relative;flex:1;height:340px"><canvas id="c-front"></canvas></div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0">
-          <div id="colorbar-max" style="font-size:10px;font-family:'JetBrains Mono',monospace;color:#94a3b8">---</div>
-          <div style="
-            width:18px;
-            flex:1;
-            border-radius:4px;
-            background:linear-gradient(to bottom,
-              rgb(253,231,37),
-              rgb(94,201,98),
-              rgb(33,145,140),
-              rgb(59,82,139),
-              rgb(68,1,84)
-            );
-          "></div>
-          <div id="colorbar-min" style="font-size:10px;font-family:'JetBrains Mono',monospace;color:#94a3b8">---</div>
-          <div style="font-size:9px;color:#64748b;writing-mode:vertical-rl;transform:rotate(180deg);margin-top:6px;letter-spacing:.05em;text-transform:uppercase">Ratio de Sharpe</div>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="ct">Matriz de Correlación de Activos</div>
-      <div style="overflow-x:auto"><table class="ht" style="text-align:center">
-        <thead><tr><th></th>${f.tickers.map(t => `<th style="text-align:center">${t}</th>`).join('')}</tr></thead>
-        <tbody>${f.tickers.map(ti => `<tr><td style="text-align:left;font-weight:600">${ti}</td>
-          ${f.tickers.map(tj => `<td style="font-family:'SF Mono',monospace;background:${crM[ti][tj] >= 0 ? `rgba(59,130,246,${.12 + crM[ti][tj] * .45})` : `rgba(239,68,68,${.12 - crM[ti][tj] * .4})`};color:#e2e8f0">${crM[ti][tj].toFixed(2)}</td>`).join('')}
-        </tr>`).join('')}</tbody>
-      </table></div>
-    </div>`;
-
-      // ── Frontera Eficiente con colormap Viridis + colorbar ──
-      const pts = f.puntos_simulados;
-      const sharpes = pts.map(p => p.sharpe);
-      const minSr = Math.min(...sharpes), maxSr = Math.max(...sharpes);
-
-      // Actualizar etiquetas de la colorbar
-      const cbMax = document.getElementById('colorbar-max');
-      const cbMin = document.getElementById('colorbar-min');
-      if (cbMax) cbMax.textContent = maxSr.toFixed(2);
-      if (cbMin) cbMin.textContent = minSr.toFixed(2);
-
-      // Construir frontera eficiente (envelope superior por bucket de volatilidad)
-      const sorted = [...pts].sort((a, b) => a.volatilidad - b.volatilidad);
-      const buckets = 30;
-      const vMin = sorted[0].volatilidad, vMax = sorted[sorted.length - 1].volatilidad;
-      const bw = (vMax - vMin) / buckets;
-      let frontier = [];
-      for (let i = 0; i < buckets; i++) {
-        const lo = vMin + i * bw, hi = lo + bw;
-        const inBucket = sorted.filter(p => p.volatilidad >= lo && p.volatilidad < hi);
-        if (inBucket.length > 0) {
-          const best = inBucket.reduce((a, b) => b.rendimiento > a.rendimiento ? b : a);
-          frontier.push({ x: best.volatilidad * 100, y: best.rendimiento * 100 });
-        }
-      }
-
-      const steppedPts = step(pts);
-
-      regCh('c-front', {
-        type: 'scatter',
-        data: {
-          datasets: [
-            {
-              label: 'Portafolios',
-              data: steppedPts.map(p => ({ x: p.volatilidad * 100, y: p.rendimiento * 100 })),
-              backgroundColor: steppedPts.map(p => sharpeColor(p.sharpe, minSr, maxSr)),
-              pointRadius: 6,
-              pointHoverRadius: 8,
-              borderWidth: 0
-            },
-            {
-              label: 'Frontera Eficiente',
-              data: frontier,
-              type: 'line',
-              borderColor: 'rgba(255,255,255,0.35)',
-              borderWidth: 1.5,
-              pointRadius: 0,
-              fill: false,
-              tension: 0.4
-            },
-            {
-              label: 'Mín. Varianza',
-              data: [{ x: mv.volatilidad_anual * 100, y: mv.rendimiento_anual * 100 }],
-              backgroundColor: '#3b82f6',
-              borderColor: '#ffffff',
-              borderWidth: 2,
-              pointRadius: 13,
-              pointHoverRadius: 15,
-              pointStyle: 'triangle',
-              rotation: 180
-            },
-            {
-              label: 'Máx. Sharpe',
-              data: [{ x: ms.volatilidad_anual * 100, y: ms.rendimiento_anual * 100 }],
-              backgroundColor: '#ef4444',
-              borderColor: '#ffffff',
-              borderWidth: 2,
-              pointRadius: 13,
-              pointHoverRadius: 15,
-              pointStyle: 'triangle',
-              rotation: 0
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: true,
-              position: 'top',
-              align: 'end',
-              labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 14, usePointStyle: true, padding: 16 }
-            },
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  if (ctx.datasetIndex === 0) {
-                    const p = steppedPts[ctx.dataIndex];
-                    return [
-                      `Vol: ${(p.volatilidad * 100).toFixed(2)}%`,
-                      `Ret: ${(p.rendimiento * 100).toFixed(2)}%`,
-                      `Sharpe: ${p.sharpe.toFixed(3)}`
-                    ];
-                  }
-                  return `${ctx.dataset.label}: Vol ${ctx.parsed.x.toFixed(2)}%  Ret ${ctx.parsed.y.toFixed(2)}%`;
-                }
-              }
-            }
-          },
-          scales: {
-            x: { ...axBase, title: { display: true, text: 'Volatilidad (%)', color: tc, font: { size: 11 } } },
-            y: { ...axBase, title: { display: true, text: 'Rendimiento Esperado (%)', color: tc, font: { size: 11 } } }
-          }
-        }
-      });
-    }
-
-    /* ══ D. SEÑALES ═══════════════════════════════════════ */
-    function renderSig() {
-      if (!GLOBAL) return;
-      const el = document.getElementById('s-sig');
-      const a = GLOBAL.alertas.alertas;
-      const m = GLOBAL.macro.indicadores_macro;
-
-      el.innerHTML = `
-    <div class="g3">
-      ${m.map(im => `<div class="mc"><div class="ml">${im.nombre}</div><div class="mv">${im.valor_actual}${im.unidad.replace('Porcentaje', '%')}</div><div class="ms">FRED: ${im.serie_fred}</div></div>`).join('')}
-      ${m.length < 3 ? `<div class="mc"><div class="ml">Tasa Libre R. (RF)</div><div class="mv">${pct(GLOBAL.capm.rf_actual)}</div><div class="ms">Actual</div></div>` : ''}
-    </div>
-    <div class="card">
-      <div class="ct">Panel Automático de Señales Técnicas</div>
-      <div style="overflow-x:auto">
-        <div class="srow" style="min-width:460px">
-          <div class="srow-hdr">Activo</div><div class="srow-hdr">MACD</div><div class="srow-hdr">RSI</div><div class="srow-hdr">Bollinger</div><div class="srow-hdr">Señal</div>
-          ${a.map(al => `
-            <div class="srow-name">${al.ticker}</div>
-            <div class="srow-cell"><span class="sig ${sigCls(al.macd_senal)}">${al.macd_senal}</span></div>
-            <div class="srow-cell"><span class="sig ${sigCls(al.rsi_senal)}">${al.rsi_senal}</span><span style="font-size:10px;margin-left:4px">${f1(al.rsi_actual || 0)}</span></div>
-            <div class="srow-cell"><span class="sig ${sigCls(al.bollinger_senal)}">${al.bollinger_senal}</span></div>
-            <div class="srow-cell"><span class="sig ${sigCls(al.senal_global)}" style="font-size:12px;font-weight:700;padding:4px 10px">${al.senal_global}</span></div>
-          `).join('')}
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="ct">Bandas de Bollinger + Precio</div>
-      <select class="sel-dd" id="dd-bb" onchange="drawBollinger()">
-        ${GLOBAL.tickers.map((t, i) => `<option value="${i}">${t}</option>`).join('')}
-      </select>
-      <div style="position:relative;height:250px"><canvas id="c-bb"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="ct">MACD — Línea, Señal e Histograma</div>
-      <select class="sel-dd" id="dd-macd" onchange="drawMACD()">
-        ${GLOBAL.tickers.map((t, i) => `<option value="${i}">${t}</option>`).join('')}
-      </select>
-      <div style="position:relative;height:220px"><canvas id="c-macd"></canvas></div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="ct" style="margin-bottom:0">RSI Últimos Períodos (Sobrecompra/Sobreventa)</div>
-        <select class="sel-dd" id="dd-rsi" onchange="drawRSI()" style="width:140px">
-          <option value="all">Todos los activos</option>
-          ${GLOBAL.tickers.map((t, i) => `<option value="${i}">${t}</option>`).join('')}
-        </select>
-      </div>
-      <div style="position:relative;height:240px"><canvas id="c-rsi"></canvas></div>
-    </div>
-    
-    <div class="card" style="background:rgba(16,185,129,0.05);border:1px dashed #10b981">
-      <div class="ct" style="color:#34d399">💡 Guía de Interpretación de Señales</div>
-      <div class="g2" style="font-size:12px;color:#94a3b8;line-height:1.5">
-        <div>
-          <p><strong style="color:#e2e8f0">MACD:</strong> COMPRA cuando la línea MACD cruza sobre la señal. VENTA cuando cruza por debajo. El histograma mide la fuerza del momentum.</p>
-          <p style="margin-top:8px"><strong style="color:#e2e8f0">RSI (Relative Strength Index):</strong> Sobrecompra (> 70) sugiere corrección (Venta). Sobreventa (&lt; 30) sugiere rebote (Compra).</p>
-        </div>
-        <div>
-          <p><strong style="color:#e2e8f0">Bollinger Bands:</strong> Tocar la banda inferior suele ser señal de sobreventa técnica. Un estrechamiento de bandas suele preceder movimientos explosivos.</p>
-          <p style="margin-top:8px"><strong style="color:#e2e8f0">Cruce de Medias:</strong> Golden Cross (SMA20 > SMA50) es alcista. Death Cross (SMA20 &lt; SMA50) es una señal bajista fuerte.</p>
-        </div>
-      </div>
-    </div>`;
-
-      drawBollinger();
-      drawMACD();
-      drawRSI();
-    }
-
-    function drawRSI() {
-      if (!GLOBAL) return;
-      const rsiLen = 60;
-      const selVal = document.getElementById('dd-rsi')?.value || 'all';
-      
-      let datasets = [];
-      if (selVal === 'all') {
-        datasets = GLOBAL.tickers.map((t, i) => {
-          let data = GLOBAL.ind[i].indicadores.slice(-rsiLen).map(x => x.rsi_14 || 50);
-          return { label: t, data, borderColor: CLRS[i % CLRS.length], borderWidth: 1.5, pointRadius: 0, tension: .3, fill: false };
-        });
-      } else {
-        const i = parseInt(selVal);
-        const t = GLOBAL.tickers[i];
-        let data = GLOBAL.ind[i].indicadores.slice(-rsiLen).map(x => x.rsi_14 || 50);
-        datasets = [{ label: t, data, borderColor: CLRS[i % CLRS.length], borderWidth: 2.5, pointRadius: 0, tension: .3, fill: false }];
-      }
-
-      // Añadir bandas de zona
-      datasets.push({ label: 'OB 70', data: Array(rsiLen).fill(70), borderColor: 'rgba(248,113,113,.35)', borderDash: [4, 3], pointRadius: 0, fill: false });
-      datasets.push({ label: 'OS 30', data: Array(rsiLen).fill(30), borderColor: 'rgba(52,211,153,.35)', borderDash: [4, 3], pointRadius: 0, fill: false });
-
-      regCh('c-rsi', {
-        type: 'line', 
-        data: {
-          labels: Array.from({ length: rsiLen }, (_, i) => '-' + (59 - i)),
-          datasets: datasets
-        }, 
-        options: { 
-          responsive: true, 
-          maintainAspectRatio: false, 
-          plugins: { 
-            legend: { 
-              display: true, 
-              labels: { color: tc, boxWidth: 10, usePointStyle: true, font: { size: 10 } } 
-            } 
-          }, 
-          scales: { 
-            x: { ...axBase }, 
-            y: { ...axBase, min: 15, max: 85, ticks: { ...axBase.ticks, callback: v => v } } 
-          } 
-        } 
-      });
-    }
-
-    function drawBollinger() {
-      if (!GLOBAL) return;
-      const idx = parseInt(document.getElementById('dd-bb').value);
-      const d = GLOBAL.ind[idx].indicadores.slice(-120);
-      const labels = d.map(x => x.fecha);
-      regCh('c-bb', {
-        type: 'line', data: {
-          labels, datasets: [
-            { label: 'Precio', data: d.map(x => x.precio), borderColor: CLRS[idx % CLRS.length], borderWidth: 2, pointRadius: 0, fill: false, tension: .2 },
-            { label: 'BB Superior', data: d.map(x => x.bb_superior), borderColor: 'rgba(248,113,113,.6)', borderWidth: 1, pointRadius: 0, fill: false, borderDash: [3, 2], tension: .2 },
-            { label: 'BB Media', data: d.map(x => x.bb_media), borderColor: 'rgba(148,163,184,.5)', borderWidth: 1, pointRadius: 0, fill: false, borderDash: [5, 3], tension: .2 },
-            { label: 'BB Inferior', data: d.map(x => x.bb_inferior), borderColor: 'rgba(52,211,153,.6)', borderWidth: 1, pointRadius: 0, fill: '+1', backgroundColor: 'rgba(100,116,139,.06)', borderDash: [3, 2], tension: .2 }
-          ]
-        }, options: {
-          responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { display: true, position: 'top', align: 'end', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, usePointStyle: true } } },
-          scales: { x: { ...axBase, ticks: { ...axBase.ticks, maxTicksLimit: 10 } }, y: { ...axBase, ticks: { ...axBase.ticks, callback: v => '$' + v.toFixed(0) } } }
-        }
-      });
-    }
-
-    function drawMACD() {
-      if (!GLOBAL) return;
-      const idx = parseInt(document.getElementById('dd-macd').value);
-      const d = GLOBAL.ind[idx].indicadores.slice(-120);
-      const labels = d.map(x => x.fecha);
-      const hist = d.map(x => x.macd_hist || 0);
-      const histColors = hist.map(h => h >= 0 ? 'rgba(61,211,44,.6)' : 'rgba(239,68,68,.6)');
-
-      regCh('c-macd', {
-        type: 'bar', data: {
-          labels, datasets: [
-            { label: 'Histograma', data: hist, backgroundColor: histColors, borderWidth: 0, order: 2 },
-            { label: 'MACD', data: d.map(x => x.macd), type: 'line', borderColor: '#3b82f6', borderWidth: 1.5, pointRadius: 0, fill: false, tension: .3, order: 1 },
-            { label: 'Signal', data: d.map(x => x.macd_signal), type: 'line', borderColor: '#f59e0b', borderWidth: 1.5, pointRadius: 0, fill: false, tension: .3, borderDash: [4, 2], order: 1 }
-          ]
-        }, options: {
-          responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { display: true, position: 'top', align: 'end', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, usePointStyle: true } } },
-          scales: { x: { ...axBase, ticks: { ...axBase.ticks, maxTicksLimit: 10 } }, y: { ...axBase } }
-        }
-      });
-    }
-
-    /* ── TAB SWITCHING ──────────────────────────────────── */
-    function sw(name, btn) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('act'));
-      btn.classList.add('act');
-      ['perf', 'risk', 'optim', 'sig', 'vol', 'fixed', 'deriv', 'ml'].forEach(n => {
-        const el = document.getElementById('s-' + n);
-        if (el) el.style.display = n === name ? '' : 'none';
-      });
-      const fn = { perf: renderPerf, risk: renderRisk, optim: renderOptim, sig: renderSig, vol: renderVol, fixed: renderFixed, deriv: renderDeriv, ml: renderML }[name];
-      if (fn) fn();
-    }
-
-    /* ══ E. VOLATILIDAD ════════════════════════════════════ */
-    async function loadVolData(tickerIdx) {
-      if (!GLOBAL) return null;
-      const t = GLOBAL.tickers[tickerIdx];
-      const per = document.getElementById('inp-per').value;
-      if (GLOBAL.volData[t] && !GLOBAL.volData[t].error) return GLOBAL.volData[t];
-
-      try {
-        const data = await api(`/volatilidad/${t}`, { periodo: per });
-        if (data.error) throw new Error(data.message || "Error desconocido");
-        GLOBAL.volData[t] = data;
-        return data;
-      } catch (e) {
-        console.error('Volatilidad error:', e);
-        const errObj = { error: true, message: e.message || "Error al conectar con el servidor" };
-        GLOBAL.volData[t] = errObj;
-        return errObj;
-      }
-    }
-
-    function renderVol() {
-      if (!GLOBAL) return;
-      const el = document.getElementById('s-vol');
-      el.innerHTML = `
-    <div class="card">
-      <div class="ct">Modelación de Volatilidad Condicional — ARCH / GARCH / EGARCH</div>
-      <p style="font-size:12px;color:#94a3b8;margin-bottom:14px;line-height:1.6">
-        A diferencia de los modelos clásicos que asumen varianza constante (homocedasticidad), los modelos ARCH/GARCH
-        capturan el <strong>agrupamiento de volatilidad</strong> (<em>volatility clustering</em>): períodos de alta
-        volatilidad tienden a ser seguidos por períodos de alta volatilidad, y viceversa. <br>
-        La metodología sigue 6 etapas: <strong>1)</strong> Transformación a log-rendimientos y test ADF,
-        <strong>2)</strong> Detección de efectos ARCH (Engle LM, Ljung-Box r²),
-        <strong>3)</strong> Especificación de modelos,
-        <strong>4)</strong> Estimación MLE,
-        <strong>5)</strong> Selección por AIC/BIC,
-        <strong>6)</strong> Diagnóstico de residuos estandarizados.
-      </p>
-      <select class="sel-dd" id="dd-vol" onchange="onVolChange()">
-        ${GLOBAL.tickers.map((t, i) => `<option value="${i}">${t}</option>`).join('')}
-      </select>
-      <div id="vol-content" style="color:#64748b;padding:20px;text-align:center">Cargando datos de volatilidad...</div>
-    </div>`;
-      onVolChange();
-    }
-
-    async function onVolChange() {
-      const idx = parseInt(document.getElementById('dd-vol').value);
-      const cont = document.getElementById('vol-content');
-      cont.innerHTML = '<div style="text-align:center;padding:50px;color:#94a3b8"><div class="spinner" style="margin:0 auto 15px"></div>Ajustando modelos ARCH/GARCH/EGARCH...<br><span style="font-size:11px;color:#64748b;margin-top:10px;display:block">(Esto puede tardar unos segundos debido a la estimación MLE)</span></div>';
-
-      const d = await loadVolData(idx);
-
-      if (!d || d.error) {
-        cont.innerHTML = `
-          <div style="text-align:center;padding:50px;color:#f87171">
-            <div style="font-size:40px;margin-bottom:15px">⚠️</div>
-            <div style="font-weight:600;margin-bottom:10px">Error cargando datos de volatilidad</div>
-            <div style="font-size:13px;color:#64748b;max-width:400px;margin:0 auto">${d?.message || "La librería 'arch' podría no estar instalada o los datos no permiten la convergencia del modelo."}</div>
-            <button class="btn-analizar" style="margin-top:20px;background:#334155;color:#f1f5f9" onclick="delete GLOBAL.volData['${GLOBAL.tickers[idx]}']; onVolChange()">Reintentar</button>
-          </div>`;
-        return;
-      }
-      const t = d.ticker;
-      const adf = d.adf_test;
-      const alm = d.arch_lm_test;
-      const lbsq = d.ljung_box_cuadrados;
-      const diag = d.diagnostico_residuos;
-
-      cont.innerHTML = `
-    <div class="g3" style="margin-top:8px">
-      <div class="mc" style="border-color:${adf.es_estacionaria ? '#3dd32c' : '#f87171'}; color:${adf.es_estacionaria ? '#3dd32c' : '#f87171'}">
-        <div class="ml" style="color:inherit">1. Test ADF (Estacionariedad)</div>
-        <div class="mv" style="font-size:16px; color:inherit">${adf.es_estacionaria ? 'ESTACIONARIA' : 'NO ESTACIONARIA'}</div>
-        <div class="ms" style="color:inherit; opacity:0.8">Estad: ${adf.estadistico} &nbsp; p: ${adf.p_valor} &nbsp; Lags: ${adf.lags_usados}</div>
-      </div>
-      <div class="mc" style="border-color:${alm.hay_efectos_arch ? '#3dd32c' : '#f59e0b'}; color:${alm.hay_efectos_arch ? '#3dd32c' : '#f59e0b'}">
-        <div class="ml" style="color:inherit">2. ARCH-LM Engle (5 lags)</div>
-        <div class="mv" style="font-size:16px; color:inherit">${alm.hay_efectos_arch ? 'EFECTOS ARCH ✓' : 'SIN EFECTOS ARCH'}</div>
-        <div class="ms" style="color:inherit; opacity:0.8">LM: ${alm.estadistico} &nbsp; p: ${alm.p_valor}</div>
-      </div>
-      <div class="mc" style="border-color:${lbsq.hay_autocorrelacion ? '#3dd32c' : '#f59e0b'}; color:${lbsq.hay_autocorrelacion ? '#3dd32c' : '#f59e0b'}">
-        <div class="ml" style="color:inherit">3. Ljung-Box r² (lag 10)</div>
-        <div class="mv" style="font-size:16px; color:inherit">${lbsq.hay_autocorrelacion ? 'DEPENDENCIA ✓' : 'SIN DEPENDENCIA'}</div>
-        <div class="ms" style="color:inherit; opacity:0.8">Q: ${lbsq.estadistico} &nbsp; p: ${lbsq.p_valor}</div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:1rem">
-      <div class="ct">Comparación de Modelos — Estimación por Máxima Verosimilitud (MLE)</div>
-      <div style="overflow-x:auto">
-      <table class="ht" style="text-align:center">
+      <table class="data-table">
         <thead>
           <tr>
-            <th style="text-align:center">Modelo</th>
-            <th style="text-align:center">Log-Likelihood</th>
-            <th style="text-align:center">AIC</th>
-            <th style="text-align:center">BIC</th>
-            <th style="text-align:center">σ Anualizada</th>
-            <th style="text-align:center">Selección</th>
+            <th>Nombre</th>
+            <th>Responsable</th>
+            <th>Estado</th>
+            <th>Fecha Inicio</th>
+            <th>Acciones</th>
           </tr>
         </thead>
-        <tbody>
-          ${d.modelos_comparados.map(m => `<tr style="${m.es_mejor ? 'background:rgba(16,185,129,.08)' : ''}">
-            <td>${m.nombre}</td>
-            <td style="font-family:'SF Mono',monospace">${m.log_likelihood}</td>
-            <td style="font-family:'SF Mono',monospace;color:${m.es_mejor ? '#3dd32c' : '#e2e8f0'}">${m.aic}</td>
-            <td style="font-family:'SF Mono',monospace">${m.bic}</td>
-            <td style="font-family:'SF Mono',monospace">${pct(m.volatilidad_anualizada)}</td>
-            <td>${m.es_mejor ? '<span class="sig sb">★ MEJOR</span>' : ''}</td>
-          </tr>`).join('')}
+        <tbody id="tabla-proyectos">
+          <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted)">
+            <span class="spinner"></span> Cargando proyectos...
+          </td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ─── TAB: Indicadores ─── -->
+  <div class="tab-panel" id="tab-indicadores">
+    <div class="surface">
+      <div class="surface-header">
+        <span class="surface-title" id="ind-section-title">Indicadores del Proyecto</span>
+        <button class="btn-primary" onclick="openModal('modal-indicador')" id="btn-nuevo-indicador">＋ Nuevo Indicador</button>
       </div>
-    <div class="card">
-      <div class="ct">4. Resumen Econométrico Detallado (Motor: GARCH-t)</div>
-      <div style="background:#0f1117;border-radius:10px;padding:15px;border:1px solid #1e2435">
-        <div style="display:flex;justify-content:space-between;margin-bottom:15px;padding-bottom:10px;border-bottom:1px solid #1e2435">
-          <div>
-            <div style="font-size:10px;color:#64748b;text-transform:uppercase">Modelo Seleccionado</div>
-            <div style="font-size:16px;font-weight:700;color:#10b981">${d.mejor_modelo}</div>
+      <div id="ind-container">
+        <div class="empty-state">
+          <div class="empty-state-icon">📈</div>
+          <div class="empty-state-text">Selecciona un proyecto para ver sus indicadores</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TAB: Afirmaciones ─── -->
+  <div class="tab-panel" id="tab-afirmaciones">
+    <div class="surface">
+      <div class="surface-header">
+        <span class="surface-title" id="afirm-section-title">Afirmaciones de Impacto</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-contrastar-todas" id="btn-contrastar-todas" onclick="contrastarTodas()" disabled
+            title="Contrastar todas las afirmaciones sin veredicto usando el Agente 01">
+            🤖 Contrastar Pendientes
+          </button>
+          <button class="btn-primary" onclick="openModal('modal-afirmacion')" id="btn-nueva-afirmacion">＋ Nueva Afirmación</button>
+        </div>
+      </div>
+      <div id="afirm-batch-status" style="display:none;margin-bottom:10px"></div>
+      <div id="afirm-container">
+        <div class="empty-state">
+          <div class="empty-state-icon">💬</div>
+          <div class="empty-state-text">Selecciona un proyecto para ver sus afirmaciones</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TAB: Datasets ─── -->
+  <div class="tab-panel" id="tab-datasets">
+    <div class="surface">
+      <div class="surface-header">
+        <span class="surface-title">Cargar Dataset</span>
+      </div>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+        <div class="upload-icon">📁</div>
+        <div class="upload-label">Arrastra tu archivo CSV o Excel aquí, o haz clic para seleccionar</div>
+        <div class="upload-hint">Formatos soportados: .csv · .xlsx · .xls · Máx. 50 MB</div>
+      </div>
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="uploadDataset(event)">
+
+      <div id="upload-status" style="display:none">
+        <div class="surface" style="margin-bottom:0.75rem">
+          <div class="surface-header">
+            <span class="surface-title" id="ds-nombre"></span>
+            <button class="btn-primary" id="btn-analizar-ds" onclick="analizarDataset()">🔬 Analizar Dataset</button>
           </div>
-          <div style="text-align:right">
-            <div style="font-size:10px;color:#64748b;text-transform:uppercase">Distribución de Errores</div>
-            <div style="font-size:16px;font-weight:700;color:#3b82f6">${d.resumen_modelo.distribucion}</div>
+          <div id="ds-preview"></div>
+        </div>
+      </div>
+
+      <div id="analisis-resultado" style="display:none">
+        <div class="surface">
+          <div class="surface-header">
+            <span class="surface-title">📊 Resultado del Análisis Estadístico</span>
+          </div>
+          <div id="analisis-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="surface">
+      <div class="surface-header">
+        <span class="surface-title">Datasets Registrados</span>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Nombre</th><th>Proyecto</th><th>Registrado</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="tabla-datasets">
+          <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted)">
+            Sin datasets aún
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ─── TAB: Alertas ─── -->
+  <div class="tab-panel" id="tab-alertas">
+    <div class="surface">
+      <div class="surface-header">
+        <span class="surface-title">Alertas del Sistema</span>
+      </div>
+      <div id="alertas-container">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔔</div>
+          <div class="empty-state-text">No hay alertas para mostrar. Selecciona un proyecto.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ═══════════════════════════════════════════════════
+     MODALES
+═══════════════════════════════════════════════════ -->
+
+<!-- Modal Login -->
+<div class="modal-overlay" id="modal-login">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🔑 Iniciar Sesión</span>
+      <button class="modal-close" onclick="closeModal('modal-login')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Usuario</label>
+      <input class="form-input" id="input-username" type="text" placeholder="admin o monitor" value="admin">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contraseña</label>
+      <input class="form-input" id="input-password" type="password" placeholder="••••••••" value="vigia2025">
+    </div>
+    <div style="margin-top:1rem;font-size:11px;color:var(--text-muted);margin-bottom:1rem">
+      Demo: <span class="mono">admin</span> / <span class="mono">vigia2025</span>
+    </div>
+    <button class="btn-primary" style="width:100%" onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- Modal Nuevo Proyecto -->
+<div class="modal-overlay" id="modal-proyecto">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📁 Nuevo Proyecto</span>
+      <button class="modal-close" onclick="closeModal('modal-proyecto')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nombre del Proyecto *</label>
+      <input class="form-input" id="p-nombre" placeholder="Ej: Fundación Vigía — Nutrición Infantil">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción</label>
+      <textarea class="form-textarea" id="p-descripcion" placeholder="Descripción breve del proyecto..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Responsable</label>
+        <input class="form-input" id="p-responsable" placeholder="Nombre del responsable">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Fecha de Inicio</label>
+        <input class="form-input" id="p-fecha" type="date">
+      </div>
+    </div>
+    <div style="margin-top:1rem;display:flex;gap:10px">
+      <button class="btn-primary" style="flex:1" onclick="crearProyecto()">Crear Proyecto</button>
+      <button class="btn-secondary" onclick="closeModal('modal-proyecto')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nuevo Indicador -->
+<div class="modal-overlay" id="modal-indicador">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📈 Nuevo Indicador</span>
+      <button class="modal-close" onclick="closeModal('modal-indicador')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nombre del Indicador *</label>
+      <input class="form-input" id="i-nombre" placeholder="Ej: Niños beneficiarios">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fórmula (opcional)</label>
+      <input class="form-input" id="i-formula" placeholder="Ej: (valor_real / valor_meta) * 100">
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Meta</label>
+        <input class="form-input" id="i-meta" type="number" min="0" step="any" placeholder="500">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Valor Real</label>
+        <input class="form-input" id="i-real" type="number" min="0" step="any" placeholder="312">
+      </div>
+    </div>
+    <div style="margin-top:1rem;display:flex;gap:10px">
+      <button class="btn-primary" style="flex:1" onclick="crearIndicador()">Guardar Indicador</button>
+      <button class="btn-secondary" onclick="closeModal('modal-indicador')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nueva Afirmación -->
+<div class="modal-overlay" id="modal-afirmacion">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">💬 Nueva Afirmación</span>
+      <button class="modal-close" onclick="closeModal('modal-afirmacion')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Texto de la Afirmación *</label>
+      <textarea class="form-textarea" id="a-texto" rows="4"
+        placeholder="Ej: El programa redujo la desnutrición infantil en un 15% en la zona de intervención."></textarea>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:1rem">
+      El Agente 01 de Vigía contrastará esta afirmación. Haz clic en 🤖 Contrastar después de registrarla.
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-primary" style="flex:1" onclick="crearAfirmacion()">Registrar Afirmación</button>
+      <button class="btn-secondary" onclick="closeModal('modal-afirmacion')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════ -->
+<script>
+  /* ── CONFIG ───────────────────────────────────── */
+  const API = 'http://127.0.0.1:8080';
+
+  /* ── ESTADO GLOBAL ────────────────────────────── */
+  const G = {
+    token: localStorage.getItem('vigia_token') || null,
+    proyectoId: null,
+    proyectos: [],
+    indicadores: [],
+    afirmaciones: [],
+    chartInd: null,
+    chartRadar: null,
+    dsNombre: null,
+  };
+
+  /* ══════════════════════════════════════════════
+     BOOTSTRAP
+  ══════════════════════════════════════════════ */
+  window.addEventListener('DOMContentLoaded', async () => {
+    initCharts();
+    await checkApiHealth();
+    await cargarListaProyectos();
+    await cargarDatasets();
+    updateAuthUI();
+  });
+
+  /* ── Health check ─── */
+  async function checkApiHealth() {
+    try {
+      const r = await fetch(`${API}/health`);
+      const dot = document.getElementById('status-dot');
+      const label = document.getElementById('status-label');
+      if (r.ok) {
+        dot.style.background = 'var(--green)';
+        label.textContent = 'API activa';
+      } else {
+        dot.style.background = 'var(--red)';
+        label.textContent = 'API con errores';
+      }
+    } catch {
+      document.getElementById('status-dot').style.background = 'var(--red)';
+      document.getElementById('status-label').textContent = 'API desconectada';
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     AUTH
+  ═══════════════════════════════════════════════ */
+  function toggleLoginModal() {
+    if (G.token) {
+      G.token = null;
+      localStorage.removeItem('vigia_token');
+      updateAuthUI();
+      toast('Sesión cerrada', 'info');
+    } else {
+      openModal('modal-login');
+    }
+  }
+
+  async function doLogin() {
+    const username = document.getElementById('input-username').value;
+    const password  = document.getElementById('input-password').value;
+    const body = new URLSearchParams({ username, password });
+    try {
+      const r = await fetch(`${API}/auth/login`, { method: 'POST', body });
+      if (!r.ok) throw new Error('Credenciales incorrectas');
+      const data = await r.json();
+      G.token = data.access_token;
+      localStorage.setItem('vigia_token', G.token);
+      closeModal('modal-login');
+      updateAuthUI();
+      toast(`Bienvenido, ${username}`, 'success');
+    } catch(e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  function updateAuthUI() {
+    const btn = document.getElementById('btn-auth');
+    if (G.token) {
+      btn.textContent = '🔓 Cerrar sesión';
+      btn.classList.add('logged-in');
+    } else {
+      btn.textContent = '🔑 Iniciar sesión';
+      btn.classList.remove('logged-in');
+    }
+  }
+
+  function authHeaders() {
+    const h = { 'Content-Type': 'application/json' };
+    if (G.token) h['Authorization'] = `Bearer ${G.token}`;
+    return h;
+  }
+
+  /* ═══════════════════════════════════════════════
+     PROYECTOS
+  ═══════════════════════════════════════════════ */
+  async function cargarListaProyectos() {
+    try {
+      const r = await fetch(`${API}/proyectos/`);
+      const data = await r.json();
+      G.proyectos = data.proyectos || [];
+      renderTablaProyectos();
+      renderSelectorProyectos();
+      document.getElementById('badge-proyectos').textContent = G.proyectos.length;
+    } catch(e) {
+      toast('Error al cargar proyectos', 'error');
+    }
+  }
+
+  function renderSelectorProyectos() {
+    const sel = document.getElementById('select-proyecto');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— Selecciona un proyecto —</option>';
+    G.proyectos.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = p.nombre;
+      sel.appendChild(o);
+    });
+    if (prev && G.proyectos.find(p => p.id === prev)) sel.value = prev;
+  }
+
+  function renderTablaProyectos() {
+    const tbody = document.getElementById('tabla-proyectos');
+    if (!G.proyectos.length) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+        <div class="empty-state-icon">📁</div>
+        <div class="empty-state-text">No hay proyectos registrados</div>
+        <button class="btn-primary" onclick="openModal('modal-proyecto')">＋ Crear primer proyecto</button>
+      </div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = G.proyectos.map(p => `
+      <tr>
+        <td>${p.nombre}</td>
+        <td class="text-muted">${p.responsable || '—'}</td>
+        <td>${badgeEstado(p.estado)}</td>
+        <td class="mono text-muted" style="font-size:11px">${p.fecha_inicio || '—'}</td>
+        <td>
+          <div class="row-actions">
+            <button class="btn-icon" onclick="seleccionarProyecto('${p.id}')" title="Ver índices">📊</button>
+            <button class="btn-icon danger" onclick="eliminarProyecto('${p.id}')" title="Eliminar">🗑</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function crearProyecto() {
+    if (!G.token) { openModal('modal-login'); return; }
+    const nombre = document.getElementById('p-nombre').value.trim();
+    if (!nombre) { toast('El nombre es obligatorio', 'error'); return; }
+    const payload = {
+      nombre,
+      descripcion: document.getElementById('p-descripcion').value,
+      responsable: document.getElementById('p-responsable').value,
+      fecha_inicio: document.getElementById('p-fecha').value || null,
+      estado: 'ACTIVO',
+    };
+    try {
+      const r = await fetch(`${API}/proyectos/`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) throw new Error((await r.json()).detail || 'Error al crear proyecto');
+      closeModal('modal-proyecto');
+      ['p-nombre','p-descripcion','p-responsable','p-fecha'].forEach(id => document.getElementById(id).value = '');
+      toast('Proyecto creado exitosamente', 'success');
+      await cargarListaProyectos();
+    } catch(e) { toast(e.message, 'error'); }
+  }
+
+  async function eliminarProyecto(id) {
+    if (!G.token) { openModal('modal-login'); return; }
+    if (!confirm('¿Eliminar este proyecto? Esta acción no se puede deshacer.')) return;
+    try {
+      const r = await fetch(`${API}/proyectos/${id}`, {
+        method: 'DELETE', headers: authHeaders()
+      });
+      if (r.status !== 204) throw new Error('No se pudo eliminar');
+      if (G.proyectoId === id) {
+        G.proyectoId = null;
+        resetIndices();
+      }
+      toast('Proyecto eliminado', 'info');
+      await cargarListaProyectos();
+    } catch(e) { toast(e.message, 'error'); }
+  }
+
+  /* ═══════════════════════════════════════════════
+     CARGAR PROYECTO (índices + indicadores + afirmaciones)
+  ═══════════════════════════════════════════════ */
+  async function cargarProyecto() {
+    const sel = document.getElementById('select-proyecto');
+    G.proyectoId = sel.value || null;
+    if (!G.proyectoId) { resetIndices(); return; }
+    await Promise.all([
+      cargarIndices(),
+      cargarIndicadores(),
+      cargarAfirmaciones(),
+      cargarAlertas(),
+    ]);
+  }
+
+  function seleccionarProyecto(id) {
+    document.getElementById('select-proyecto').value = id;
+    G.proyectoId = id;
+    cargarProyecto();
+    switchTab('indicadores');
+  }
+
+  async function refreshAll() {
+    await cargarListaProyectos();
+    if (G.proyectoId) await cargarProyecto();
+    await cargarDatasets();
+    toast('Datos actualizados', 'info');
+  }
+
+  /* ═══════════════════════════════════════════════
+     ÍNDICES VIGÍA
+  ═══════════════════════════════════════════════ */
+  async function cargarIndices() {
+    if (!G.proyectoId) return;
+    try {
+      const r = await fetch(`${API}/proyectos/${G.proyectoId}/indices`);
+      const d = await r.json();
+      renderIndices(d);
+    } catch(e) { toast('Error al cargar índices', 'error'); }
+  }
+
+  function renderIndices(d) {
+    const fmt = v => v !== null && v !== undefined ? `${v.toFixed(1)}%` : '—';
+    const pct = v => v !== null && v !== undefined ? `${Math.min(v, 100)}%` : '0%';
+
+    document.getElementById('val-avance').textContent    = fmt(d.indice_avance);
+    document.getElementById('val-impacto').textContent   = fmt(d.indice_impacto);
+    document.getElementById('val-capacidad').textContent = fmt(d.indice_capacidad);
+    document.getElementById('val-veracidad').textContent = fmt(d.indice_veracidad);
+
+    document.getElementById('bar-avance').style.width    = pct(d.indice_avance);
+    document.getElementById('bar-impacto').style.width   = pct(d.indice_impacto);
+    document.getElementById('bar-capacidad').style.width = pct(d.indice_capacidad);
+    document.getElementById('bar-veracidad').style.width = pct(d.indice_veracidad);
+
+    document.getElementById('sub-avance').textContent    = d.indice_avance !== null ? 'Cumplimiento promedio de indicadores' : 'Sin indicadores con meta definida';
+    document.getElementById('sub-capacidad').textContent = d.indice_capacidad !== null ? 'Indicadores con valor real registrado' : 'Sin indicadores registrados';
+    document.getElementById('sub-veracidad').textContent = d.indice_veracidad !== null ? 'Afirmaciones sustentadas / contrastadas' : 'Sin afirmaciones contrastadas';
+    document.getElementById('sub-impacto').textContent   = d.indice_impacto !== null ? 'Beneficiarios reales vs esperados' : 'Requiere Agente 02 (Fase 6)';
+
+    // Actualizar radar
+    updateRadarChart(d);
+  }
+
+  function resetIndices() {
+    ['avance','impacto','capacidad','veracidad'].forEach(k => {
+      document.getElementById(`val-${k}`).textContent = '—';
+      document.getElementById(`bar-${k}`).style.width = '0%';
+    });
+    document.getElementById('sub-avance').textContent    = 'Selecciona un proyecto';
+    document.getElementById('sub-impacto').textContent   = 'Requiere Agente 02';
+    document.getElementById('sub-capacidad').textContent = 'Selecciona un proyecto';
+    document.getElementById('sub-veracidad').textContent = 'Requiere afirmaciones contrastadas';
+    updateRadarChart({ indice_avance: 0, indice_impacto: 0, indice_capacidad: 0, indice_veracidad: 0 });
+  }
+
+  /* ═══════════════════════════════════════════════
+     INDICADORES
+  ═══════════════════════════════════════════════ */
+  async function cargarIndicadores() {
+    if (!G.proyectoId) return;
+    try {
+      const r = await fetch(`${API}/proyectos/${G.proyectoId}/indicadores/`);
+      G.indicadores = await r.json();
+      renderIndicadores();
+      document.getElementById('badge-indicadores').textContent = G.indicadores.length;
+      updateBarChart();
+    } catch(e) { toast('Error al cargar indicadores', 'error'); }
+  }
+
+  function renderIndicadores() {
+    const container = document.getElementById('ind-container');
+    if (!G.indicadores.length) {
+      container.innerHTML = `<div class="empty-state">
+        <div class="empty-state-icon">📈</div>
+        <div class="empty-state-text">No hay indicadores para este proyecto</div>
+        <button class="btn-primary" onclick="openModal('modal-indicador')">＋ Agregar primer indicador</button>
+      </div>`;
+      return;
+    }
+    container.innerHTML = `<div class="ind-list">${G.indicadores.map(i => {
+      const pct = i.porcentaje_avance;
+      const color = pct === null ? '#475569' : pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
+      return `
+        <div class="ind-item">
+          <div class="ind-header">
+            <span class="ind-name">${i.nombre}</span>
+            <span class="ind-pct" style="color:${color}">${pct !== null ? pct.toFixed(1) + '%' : '—'}</span>
+          </div>
+          <div class="ind-track">
+            <div class="ind-fill" style="width:${pct || 0}%;background:${color}"></div>
+          </div>
+          <div class="ind-meta">
+            Meta: <strong>${i.valor_meta !== null ? i.valor_meta : '—'}</strong> ·
+            Real: <strong>${i.valor_real !== null ? i.valor_real : '—'}</strong> ·
+            <span class="mono">${i.formula || '—'}</span>
+            <span style="float:right">
+              <button class="btn-icon danger" onclick="eliminarIndicador('${i.id}')" title="Eliminar">🗑</button>
+            </span>
           </div>
         </div>
-        
-        <div style="margin-bottom:15px">
-          <div style="font-size:11px;color:#94a3b8;margin-bottom:8px">Coeficientes del Modelo y Significancia:</div>
-          <table class="ht" style="font-size:11px">
-            <thead><tr><th style="text-align:left">Parámetro</th><th style="text-align:right">Valor</th><th style="text-align:right">p-valor</th><th style="text-align:center">Sig.</th></tr></thead>
+      `;
+    }).join('')}</div>`;
+    const t = document.getElementById('ind-section-title');
+    const p = G.proyectos.find(x => x.id === G.proyectoId);
+    if (p) t.textContent = `Indicadores — ${p.nombre}`;
+  }
+
+  async function crearIndicador() {
+    if (!G.token) { openModal('modal-login'); return; }
+    if (!G.proyectoId) { toast('Primero selecciona un proyecto', 'error'); return; }
+    const nombre = document.getElementById('i-nombre').value.trim();
+    if (!nombre) { toast('El nombre es obligatorio', 'error'); return; }
+    const meta = document.getElementById('i-meta').value;
+    const real = document.getElementById('i-real').value;
+    const payload = {
+      nombre,
+      formula: document.getElementById('i-formula').value,
+      valor_meta: meta ? parseFloat(meta) : null,
+      valor_real: real ? parseFloat(real) : null,
+    };
+    try {
+      const r = await fetch(`${API}/proyectos/${G.proyectoId}/indicadores/`, {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify(payload),
+      });
+      if (!r.ok) throw new Error((await r.json()).detail || 'Error');
+      closeModal('modal-indicador');
+      ['i-nombre','i-formula','i-meta','i-real'].forEach(id => document.getElementById(id).value = '');
+      toast('Indicador creado', 'success');
+      await cargarIndicadores();
+      await cargarIndices();
+    } catch(e) { toast(e.message, 'error'); }
+  }
+
+  async function eliminarIndicador(id) {
+    if (!G.token) { openModal('modal-login'); return; }
+    if (!confirm('¿Eliminar este indicador?')) return;
+    try {
+      await fetch(`${API}/proyectos/${G.proyectoId}/indicadores/${id}`, {
+        method: 'DELETE', headers: authHeaders()
+      });
+      toast('Indicador eliminado', 'info');
+      await cargarIndicadores();
+      await cargarIndices();
+    } catch(e) { toast(e.message, 'error'); }
+  }
+
+  /* ═══════════════════════════════════════════════
+     AFIRMACIONES
+  ═══════════════════════════════════════════════ */
+  async function cargarAfirmaciones() {
+    if (!G.proyectoId) return;
+    try {
+      const r = await fetch(`${API}/proyectos/${G.proyectoId}/afirmaciones/`);
+      const d = await r.json();
+      G.afirmaciones = d.afirmaciones || [];
+      renderAfirmaciones();
+      document.getElementById('badge-afirmaciones').textContent = G.afirmaciones.length;
+    } catch(e) { toast('Error al cargar afirmaciones', 'error'); }
+  }
+
+  function renderAfirmaciones() {
+    const container = document.getElementById('afirm-container');
+    const p = G.proyectos.find(x => x.id === G.proyectoId);
+    if (p) document.getElementById('afirm-section-title').textContent = `Afirmaciones — ${p.nombre}`;
+
+    // Habilitar/deshabilitar botón batch según pendientes
+    const pendientes = G.afirmaciones.filter(a => !a.veredicto).length;
+    const btnTodas = document.getElementById('btn-contrastar-todas');
+    if (btnTodas) btnTodas.disabled = pendientes === 0 || !G.token;
+
+    if (!G.afirmaciones.length) {
+      container.innerHTML = `<div class="empty-state">
+        <div class="empty-state-icon">💬</div>
+        <div class="empty-state-text">No hay afirmaciones registradas para este proyecto</div>
+        <button class="btn-primary" onclick="openModal('modal-afirmacion')">＋ Registrar primera afirmación</button>
+      </div>`;
+      return;
+    }
+
+    container.innerHTML = `<div class="afirm-list">${G.afirmaciones.map(a => {
+      const icono = a.veredicto === 'SUSTENTADA' ? '✅' : a.veredicto === 'REFUTADA' ? '❌' : a.veredicto === 'SIN DATOS' ? '⚠️' : '🔍';
+      const badge = a.veredicto ? badgeVeredicto(a.veredicto) : '<span class="badge badge-pendiente">Pendiente</span>';
+
+      // Barra de confianza
+      let confBar = '';
+      if (a.confianza !== null && a.confianza !== undefined) {
+        const pct = Math.round(a.confianza * 100);
+        const color = pct >= 70 ? '#10b981' : pct >= 45 ? '#f59e0b' : '#ef4444';
+        confBar = `<div class="afirm-confianza-bar">
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          <span style="font-size:11px;color:var(--text-muted);min-width:32px">${pct}%</span>
+        </div>`;
+      }
+
+      // Razonamiento expandible
+      let razDiv = '';
+      if (a.veredicto && a.agente_id) {
+        const fuente = a.fuente_url
+          ? `<div class="raz-fuente">📎 Fuente: <a href="${a.fuente_url}" target="_blank" rel="noopener">${a.fuente_url}</a></div>`
+          : '';
+        const proveedor = a.agente_id ? `<span style="opacity:.6">(${a.agente_id})</span>` : '';
+        razDiv = `<div class="afirm-razonamiento" id="raz-${a.id}" style="display:none">
+          <div class="raz-label">🤖 Análisis del Agente 01 ${proveedor}</div>
+          <div>${a.razonamiento || 'Sin razonamiento disponible.'}</div>
+          ${fuente}
+        </div>
+        <button onclick="toggleRaz('${a.id}')" style="background:none;border:none;color:#7c3aed;font-size:11px;cursor:pointer;padding:2px 0;margin-top:4px">▶ Ver análisis del agente</button>`;
+      }
+
+      // Botón contrastar (solo si pendiente y hay token)
+      const btnContr = !a.veredicto
+        ? `<button class="btn-agente" id="btn-c-${a.id}" onclick="contrastarAfirmacion('${a.id}')">
+             🤖 Contrastar
+           </button>`
+        : `<button class="btn-agente" onclick="contrastarAfirmacion('${a.id}')" title="Re-contrastar"
+             style="background:linear-gradient(135deg,#374151,#1f2937)">
+             🔄 Re-contrastar
+           </button>`;
+
+      return `
+        <div class="afirm-item" id="afirm-${a.id}">
+          <div class="afirm-icon">${icono}</div>
+          <div class="afirm-body">
+            <div class="afirm-texto">${escapeHtml(a.texto)}</div>
+            <div class="afirm-meta">
+              ${badge}
+              ${confBar}
+              ${razDiv}
+              <div class="afirm-actions">
+                ${G.token ? btnContr : ''}
+                <button class="btn-icon danger" onclick="eliminarAfirmacion('${a.id}')" title="Eliminar">🗑</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('')}</div>`;
+  }
+
+  function toggleRaz(id) {
+    const el = document.getElementById(`raz-${id}`);
+    if (!el) return;
+    const visible = el.style.display !== 'none';
+    el.style.display = visible ? 'none' : 'block';
+    const btn = el.nextElementSibling;
+    if (btn) btn.textContent = visible ? '▶ Ver análisis del agente' : '▼ Ocultar análisis';
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function crearAfirmacion() {
+    if (!G.token) { openModal('modal-login'); return; }
+    if (!G.proyectoId) { toast('Primero selecciona un proyecto', 'error'); return; }
+    const texto = document.getElementById('a-texto').value.trim();
+    if (texto.length < 10) { toast('La afirmación es demasiado corta', 'error'); return; }
+    try {
+      const r = await fetch(`${API}/proyectos/${G.proyectoId}/afirmaciones/`, {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify({ texto }),
+      });
+      if (!r.ok) throw new Error((await r.json()).detail || 'Error');
+      closeModal('modal-afirmacion');
+      document.getElementById('a-texto').value = '';
+      toast('Afirmación registrada', 'success');
+      await cargarAfirmaciones();
+    } catch(e) { toast(e.message, 'error'); }
+  }
+
+  async function contrastarAfirmacion(afirmacionId) {
+    if (!G.token) { openModal('modal-login'); return; }
+    if (!G.proyectoId) return;
+
+    // Actualizar UI del item
+    const item = document.getElementById(`afirm-${afirmacionId}`);
+    const btn = document.getElementById(`btn-c-${afirmacionId}`);
+    if (item) item.classList.add('procesando');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<div class="spinner"></div> Analizando...`;
+    }
+
+    try {
+      const r = await fetch(
+        `${API}/proyectos/${G.proyectoId}/afirmaciones/${afirmacionId}/contrastar`,
+        { method: 'POST', headers: authHeaders() }
+      );
+      if (!r.ok) {
+        const err = await r.json();
+        throw new Error(err.detail || `Error ${r.status}`);
+      }
+      const resultado = await r.json();
+      toast(
+        `Agente 01: ${resultado.veredicto} (${Math.round(resultado.confianza * 100)}% confianza)`,
+        resultado.veredicto === 'SUSTENTADA' ? 'success' : resultado.veredicto === 'REFUTADA' ? 'error' : 'info'
+      );
+
+      // Actualizar el objeto en memoria con razonamiento
+      const idx = G.afirmaciones.findIndex(a => a.id === afirmacionId);
+      if (idx !== -1) {
+        G.afirmaciones[idx] = {
+          ...G.afirmaciones[idx],
+          veredicto: resultado.veredicto,
+          confianza: resultado.confianza,
+          fuente_url: resultado.fuente_url,
+          agente_id: resultado.proveedor ? `agente-01-${resultado.proveedor}` : null,
+          razonamiento: resultado.razonamiento,
+        };
+      }
+
+      // Recargar desde API para sincronizar índice de veracidad
+      await cargarProyecto();
+
+    } catch(e) {
+      toast(`Error: ${e.message}`, 'error');
+      if (item) item.classList.remove('procesando');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '🤖 Contrastar';
+      }
+    }
+  }
+
+  async function contrastarTodas() {
+    if (!G.token) { openModal('modal-login'); return; }
+    if (!G.proyectoId) return;
+
+    const btn = document.getElementById('btn-contrastar-todas');
+    const statusEl = document.getElementById('afirm-batch-status');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:12px;height:12px"></div> Procesando...'; }
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = `<div style="padding:10px 12px;background:rgba(124,58,237,0.08);border-radius:8px;font-size:12px;color:var(--text-secondary)">
+        🤖 Agente 01 contrastando afirmaciones pendientes... Por favor espera.
+      </div>`;
+    }
+
+    try {
+      const r = await fetch(
+        `${API}/proyectos/${G.proyectoId}/afirmaciones/contrastar-todas`,
+        { method: 'POST', headers: authHeaders() }
+      );
+      if (!r.ok) {
+        const err = await r.json();
+        throw new Error(err.detail || `Error ${r.status}`);
+      }
+      const batch = await r.json();
+
+      if (statusEl) {
+        if (batch.total_procesadas === 0) {
+          statusEl.innerHTML = `<div style="padding:10px 12px;background:rgba(16,185,129,0.08);border-radius:8px;font-size:12px;color:#10b981">
+            ✅ Todas las afirmaciones ya tienen veredicto.
+          </div>`;
+        } else {
+          statusEl.innerHTML = `<div style="padding:10px 12px;background:rgba(124,58,237,0.08);border-radius:8px;font-size:12px;color:var(--text-secondary)">
+            ✅ <strong>Agente 01 completó el análisis</strong> — ${batch.total_procesadas} afirmaciones procesadas:<br>
+            &nbsp;&nbsp;✅ Sustentadas: <strong>${batch.sustentadas}</strong>
+            &nbsp;❌ Refutadas: <strong>${batch.refutadas}</strong>
+            &nbsp;⚠️ Sin datos: <strong>${batch.sin_datos}</strong>
+          </div>`;
+          toast(`Agente 01: ${batch.total_procesadas} afirmaciones contrastadas`, 'success');
+        }
+      }
+
+      await cargarProyecto();
+
+    } catch(e) {
+      toast(`Error en batch: ${e.message}`, 'error');
+      if (statusEl) {
+        statusEl.innerHTML = `<div style="padding:10px 12px;background:rgba(239,68,68,0.08);border-radius:8px;font-size:12px;color:#ef4444">
+          ❌ Error: ${escapeHtml(e.message)}
+        </div>`;
+      }
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = '🤖 Contrastar Pendientes'; }
+    }
+  }
+
+  async function eliminarAfirmacion(id) {
+    if (!G.token) { openModal('modal-login'); return; }
+    if (!confirm('¿Eliminar esta afirmación?')) return;
+    try {
+      await fetch(`${API}/proyectos/${G.proyectoId}/afirmaciones/${id}`, {
+        method: 'DELETE', headers: authHeaders()
+      });
+      toast('Afirmación eliminada', 'info');
+      await cargarAfirmaciones();
+    } catch(e) { toast(e.message, 'error'); }
+  }
+
+  /* ═══════════════════════════════════════════════
+     ALERTAS
+  ═══════════════════════════════════════════════ */
+  async function cargarAlertas() {
+    if (!G.proyectoId) return;
+    try {
+      const r = await fetch(`${API}/proyectos/${G.proyectoId}/alertas`);
+      const d = await r.json();
+      const alertas = d.alertas || [];
+      document.getElementById('badge-alertas').textContent = alertas.length;
+      renderAlertas(alertas);
+    } catch {}
+  }
+
+  function renderAlertas(alertas) {
+    const container = document.getElementById('alertas-container');
+    if (!alertas.length) {
+      container.innerHTML = `<div class="empty-state">
+        <div class="empty-state-icon">✅</div>
+        <div class="empty-state-text">Sin alertas activas para este proyecto</div>
+      </div>`;
+      return;
+    }
+    container.innerHTML = `<div class="afirm-list">${alertas.map(a => `
+      <div class="afirm-item">
+        <div class="afirm-icon">⚠️</div>
+        <div class="afirm-body">
+          <div class="afirm-texto">${a.mensaje}</div>
+          <div class="afirm-meta">${badgeSeveridad(a.severidad)} · <span class="mono">${fmtDate(a.timestamp)}</span></div>
+        </div>
+      </div>
+    `).join('')}</div>`;
+  }
+
+  /* ═══════════════════════════════════════════════
+     DATASETS
+  ═══════════════════════════════════════════════ */
+  async function cargarDatasets() {
+    try {
+      const r = await fetch(`${API}/datasets/`);
+      const datasets = await r.json();
+      renderTablaDatasets(datasets);
+    } catch {}
+  }
+
+  function renderTablaDatasets(datasets) {
+    const tbody = document.getElementById('tabla-datasets');
+    if (!datasets.length) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted)">Sin datasets aún</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = datasets.map(d => `
+      <tr>
+        <td class="mono" style="font-size:12px">${d.nombre}</td>
+        <td class="text-muted">${d.proyecto_id || '—'}</td>
+        <td class="text-muted mono" style="font-size:11px">${fmtDate(d.created_at)}</td>
+        <td><div class="row-actions">
+          <button class="btn-icon" onclick="analizarDatasetPorNombre('${d.nombre}')" title="Analizar">🔬</button>
+        </div></td>
+      </tr>
+    `).join('');
+  }
+
+  /* Drag & Drop */
+  function handleDragOver(e) {
+    e.preventDefault();
+    document.getElementById('upload-zone').classList.add('drag-over');
+  }
+  function handleDragLeave(e) {
+    document.getElementById('upload-zone').classList.remove('drag-over');
+  }
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('upload-zone').classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) procesarArchivo(file);
+  }
+
+  async function uploadDataset(e) {
+    const file = e.target.files[0];
+    if (file) await procesarArchivo(file);
+  }
+
+  async function procesarArchivo(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['csv','xlsx','xls'].includes(ext)) {
+      toast('Formato no soportado. Use CSV o Excel.', 'error');
+      return;
+    }
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('descripcion', `Cargado vía interfaz`);
+    if (G.proyectoId) fd.append('proyecto_id', G.proyectoId);
+
+    toast('Subiendo archivo...', 'info');
+    try {
+      const headers = {};
+      if (G.token) headers['Authorization'] = `Bearer ${G.token}`;
+      const r = await fetch(`${API}/datasets/upload`, { method: 'POST', headers, body: fd });
+      if (!r.ok) {
+        const err = await r.json();
+        throw new Error(err.detail || 'Error al subir');
+      }
+      const d = await r.json();
+      G.dsNombre = d.nombre;
+      document.getElementById('ds-nombre').textContent = `📄 ${d.nombre}`;
+      document.getElementById('upload-status').style.display = 'block';
+      document.getElementById('analisis-resultado').style.display = 'none';
+      document.getElementById('ds-preview').innerHTML = `
+        <div style="font-size:12px;color:var(--text-muted);padding:8px 0">
+          Dataset registrado correctamente. Haz clic en <strong>🔬 Analizar Dataset</strong> para el análisis estadístico.
+        </div>`;
+      toast('Archivo subido exitosamente', 'success');
+      await cargarDatasets();
+    } catch(e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  async function analizarDataset() {
+    if (!G.dsNombre) return;
+    await analizarDatasetPorNombre(G.dsNombre);
+  }
+
+  async function analizarDatasetPorNombre(nombre) {
+    toast('Analizando dataset...', 'info');
+    document.getElementById('btn-analizar-ds').disabled = true;
+    try {
+      const r = await fetch(`${API}/datasets/${encodeURIComponent(nombre)}/analizar`, { method: 'POST' });
+      if (!r.ok) throw new Error((await r.json()).detail || 'Error');
+      const d = await r.json();
+      renderAnalisis(d);
+      toast('Análisis completado', 'success');
+    } catch(e) {
+      toast(e.message, 'error');
+    } finally {
+      const btn = document.getElementById('btn-analizar-ds');
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  function renderAnalisis(d) {
+    const container = document.getElementById('analisis-content');
+    const recs = (d.recomendaciones || []).map(r => `<li>${r}</li>`).join('');
+
+    container.innerHTML = `
+      <div class="g2-chart" style="margin-bottom:1rem">
+        <div>
+          <div class="surface-title" style="margin-bottom:0.75rem">📋 Resumen del Dataset</div>
+          <table class="analysis-table">
             <tbody>
-              ${d.resumen_modelo.coeficientes.map(c => `
-                <tr>
-                  <td style="text-align:left;font-family:'SF Mono',monospace;color:#e2e8f0">${c.parametro}</td>
-                  <td style="text-align:right;font-family:'SF Mono',monospace">${c.valor.toFixed(6)}</td>
-                  <td style="text-align:right;font-family:'SF Mono',monospace;color:${c.p_valor < 0.05 ? '#3dd32c' : '#64748b'}">${c.p_valor.toFixed(4)}</td>
-                  <td style="text-align:center;color:#f59e0b;font-weight:700">${c.significancia}</td>
-                </tr>
-              `).join('')}
+              <tr><td>Nombre</td><td class="mono">${d.nombre}</td></tr>
+              <tr><td>Filas</td><td class="mono">${d.n_filas.toLocaleString()}</td></tr>
+              <tr><td>Columnas</td><td class="mono">${d.n_columnas}</td></tr>
+              <tr><td>Memoria</td><td class="mono">${d.memoria_mb} MB</td></tr>
+              <tr><td>Patrón missingness</td><td>${d.patron_missingness}</td></tr>
             </tbody>
           </table>
-          <div style="font-size:9px;color:#475569;margin-top:4px">Significancia: *** p<0.01, ** p<0.05, * p<0.1</div>
         </div>
-
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-          <div style="background:#1e2435;padding:8px;border-radius:6px;text-align:center">
-            <div style="font-size:9px;color:#64748b;text-transform:uppercase">Log-Likelihood</div>
-            <div style="font-size:13px;font-family:'SF Mono',monospace">${d.resumen_modelo.loglik}</div>
-          </div>
-          <div style="background:#1e2435;padding:8px;border-radius:6px;text-align:center">
-            <div style="font-size:9px;color:#64748b;text-transform:uppercase">AIC</div>
-            <div style="font-size:13px;font-family:'SF Mono',monospace;color:#10b981">${d.resumen_modelo.aic}</div>
-          </div>
-          <div style="background:#1e2435;padding:8px;border-radius:6px;text-align:center">
-            <div style="font-size:9px;color:#64748b;text-transform:uppercase">BIC</div>
-            <div style="font-size:13px;font-family:'SF Mono',monospace">${d.resumen_modelo.bic}</div>
-          </div>
+        <div>
+          <div class="surface-title" style="margin-bottom:0.75rem">💡 Recomendaciones</div>
+          <ul class="rec-list">${recs || '<li>No hay recomendaciones</li>'}</ul>
         </div>
       </div>
-      <div style="font-size:11px;color:#64748b;margin-top:10px;line-height:1.4">
-        🔍 <strong>Interpretación:</strong> La persistencia de la volatilidad ($\alpha + \beta$) cercana a 1 sugiere "memoria larga" en las crisis. 
-        ${d.resumen_modelo.coeficientes.some(c => c.parametro.includes('gamma') && c.p_valor < 0.05) ? '<br>⚠️ <strong>Efecto Apalancamiento detectado:</strong> Las caídas de precio generan mayor volatilidad que las subidas.' : ''}
-      </div>
-    </div>
 
-
-    <div class="card">
-      <div class="ct">Rendimientos al Cuadrado r²(t) — Evidencia de Agrupamiento de Volatilidad</div>
-      <div style="position:relative;height:180px"><canvas id="c-retsq"></canvas></div>
-    </div>
-
-    <div class="card">
-      <div class="ct">Volatilidad Condicional Anualizada σ(t) — ${d.mejor_modelo}</div>
-      <div style="position:relative;height:220px"><canvas id="c-volcond"></canvas></div>
-    </div>
-
-    <div class="g2">
-      <div class="card" style="margin-bottom:0">
-        <div class="ct">Pronóstico de Volatilidad — 30 Días</div>
-        <div style="position:relative;height:200px"><canvas id="c-volfore"></canvas></div>
-      </div>
-      <div class="card" style="margin-bottom:0">
-        <div class="ct">Residuos Estandarizados z(t) = â(t)/σ̂(t)</div>
-        <div style="position:relative;height:200px"><canvas id="c-stdres"></canvas></div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:1.25rem">
-      <div class="ct">6. Diagnóstico y Validación del Modelo</div>
-      <div style="overflow-x:auto">
-      <table class="ht">
-        <thead><tr><th>Métrica</th><th>Valor</th><th>Resultado</th></tr></thead>
-        <tbody>
-          <tr><td>Media residuos z(t)</td><td style="font-family:'SF Mono',monospace">${diag.media}</td><td>${Math.abs(diag.media) < 0.1 ? '<span class="sig sb">✓ ≈ 0</span>' : '<span class="sig ss">✗ ≠ 0</span>'}</td></tr>
-          <tr><td>Desv. Estándar z(t)</td><td style="font-family:'SF Mono',monospace">${diag.desv_estandar}</td><td>${Math.abs(diag.desv_estandar - 1) < 0.15 ? '<span class="sig sb">✓ ≈ 1</span>' : '<span class="sig ss">✗ ≠ 1</span>'}</td></tr>
-          <tr><td>Asimetría z(t)</td><td style="font-family:'SF Mono',monospace">${diag.asimetria}</td><td>${Math.abs(diag.asimetria) < 0.5 ? '<span class="sig sb">✓ Simétrico</span>' : '<span class="sig sn">Asimétrico</span>'}</td></tr>
-          <tr><td>Curtosis Exceso z(t)</td><td style="font-family:'SF Mono',monospace">${diag.curtosis_exceso}</td><td>${diag.curtosis_exceso > 1 ? '<span class="sig sn">Colas pesadas</span>' : '<span class="sig sb">✓ Normal</span>'}</td></tr>
-          <tr><td>Jarque-Bera z(t)</td><td style="font-family:'SF Mono',monospace">JB=${diag.jb_estadistico} &nbsp; p=${diag.jb_p_valor}</td><td>${diag.residuos_normales ? '<span class="sig sb">✓ Normalidad</span>' : '<span class="sig ss">✗ No normal</span>'}</td></tr>
-          <tr><td>Ljung-Box z(t) (lag 10)</td><td style="font-family:'SF Mono',monospace">p=${diag.ljung_box_p_valor}</td><td>${diag.sin_autocorrelacion ? '<span class="sig sb">✓ Sin autocorrelación</span>' : '<span class="sig ss">✗ Autocorrelación</span>'}</td></tr>
-        </tbody>
+      <div class="surface-title" style="margin-bottom:0.75rem">📊 Tipos de Variables</div>
+      <table class="analysis-table" style="margin-bottom:1rem">
+        <thead><tr>
+          <th>Columna</th><th>Dtype</th><th>Tipo Vigía</th><th>Nulos</th><th>% Nulos</th><th>Únicos</th>
+        </tr></thead>
+        <tbody>${(d.columnas || []).map(c => `
+          <tr>
+            <td>${c.nombre}</td>
+            <td><span class="tag-tipo">${c.dtype}</span></td>
+            <td style="color:var(--text-secondary)">${c.tipo_vigia}</td>
+            <td class="mono ${c.n_nulos > 0 ? 'text-amber' : 'text-green'}">${c.n_nulos}</td>
+            <td class="mono">${c.pct_nulos}%</td>
+            <td class="mono">${c.n_unicos}</td>
+          </tr>
+        `).join('')}</tbody>
       </table>
-      </div>
-      <div style="font-size:11px;color:#64748b;margin-top:10px;line-height:1.5">
-        Si los residuos estandarizados z(t) no muestran autocorrelación y z²(t) no presenta efectos ARCH remanentes, el modelo está correctamente especificado.
-        ${!diag.residuos_normales ? ' Se recomienda re-estimar con distribución <strong>t-Student</strong> para capturar colas pesadas.' : ''}
-      </div>
-    </div>`;
 
-      // ── Charts ──
-      const stepV = a => { const s = Math.ceil(a.length / 200); return a.filter((_, i) => i % s === 0); };
+      ${d.datos_faltantes && d.datos_faltantes.length ? `
+        <div class="surface-title" style="margin-bottom:0.75rem">📉 Datos Faltantes</div>
+        <table class="analysis-table">
+          <thead><tr><th>Columna</th><th>Nulos</th><th>% Nulos</th><th>Patrón</th></tr></thead>
+          <tbody>${d.datos_faltantes.map(f => `
+            <tr>
+              <td>${f.columna}</td>
+              <td class="mono text-amber">${f.n_nulos}</td>
+              <td class="mono">${f.pct_nulos}%</td>
+              <td>${f.patron}</td>
+            </tr>
+          `).join('')}</tbody>
+        </table>
+      ` : '<div style="color:var(--green);font-size:13px;padding:8px 0">✅ No se detectaron datos faltantes</div>'}
+    `;
 
-      // Rendimientos al cuadrado
-      const rSq = stepV(d.serie_rendimientos_cuadrados);
-      regCh('c-retsq', {
-        type: 'bar', data: {
-          labels: rSq.map(x => x.fecha), datasets: [{
-            label: 'r²(t)', data: rSq.map(x => x.valor * 10000), backgroundColor: 'rgba(236, 72, 153, 0.6)', borderWidth: 0
-          }]
-        }, options: {
-          responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-          scales: { x: { ...axBase, ticks: { ...axBase.ticks, maxTicksLimit: 8 } }, y: { ...axBase, ticks: { ...axBase.ticks, callback: v => v.toFixed(1) + 'bp' } } }
-        }
-      });
+    document.getElementById('analisis-resultado').style.display = 'block';
+    document.getElementById('analisis-resultado').scrollIntoView({ behavior: 'smooth' });
+  }
 
-      // Volatilidad condicional
-      const vC = stepV(d.serie_volatilidad_condicional);
-      regCh('c-volcond', {
-        type: 'line', data: {
-          labels: vC.map(x => x.fecha), datasets: [{
-            label: 'σ(t) Anualizada', data: vC.map(x => x.volatilidad * 100), borderColor: '#f59e0b', borderWidth: 1.8, pointRadius: 0, fill: true, backgroundColor: 'rgba(245,158,11,.08)', tension: .3
-          }]
-        }, options: {
-          responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-          scales: { x: { ...axBase, ticks: { ...axBase.ticks, maxTicksLimit: 8 } }, y: { ...axBase, ticks: { ...axBase.ticks, callback: v => v.toFixed(0) + '%' } } }
-        }
-      });
-
-      // Pronóstico
-      regCh('c-volfore', {
-        type: 'line', data: {
-          labels: Array.from({ length: d.pronostico_volatilidad.length }, (_, i) => 'D+' + (i + 1)),
-          datasets: [{ label: 'Pronóstico σ', data: d.pronostico_volatilidad.map(v => v * Math.sqrt(252) * 100), borderColor: '#3dd32c', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#3dd32c', fill: true, backgroundColor: 'rgba(16,185,129,.07)', tension: .4 }]
-        }, options: {
-          responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-          scales: { x: { ...axBase }, y: { ...axBase, ticks: { ...axBase.ticks, callback: v => v.toFixed(1) + '%' } } }
-        }
-      });
-
-      // Residuos estandarizados
-      const rS = stepV(d.serie_residuos_estandarizados);
-      regCh('c-stdres', {
-        type: 'line', data: {
-          labels: rS.map(x => x.fecha), datasets: [{
-            label: 'z(t)', data: rS.map(x => x.valor), borderColor: '#a78bfa', borderWidth: 1, pointRadius: 0, fill: false, tension: .2
-          }]
-        }, options: {
-          responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-          scales: { x: { ...axBase, ticks: { ...axBase.ticks, maxTicksLimit: 8 } }, y: { ...axBase } }
-        }
-      });
-    }
-
-    /* ══ F. RENTA FIJA (Nelson-Siegel) ════════════════════ */
-    function renderFixed() {
-      if (!GLOBAL) return;
-      const el = document.getElementById('s-fixed');
-      const f = GLOBAL.fixed;
-
-      if (!f || f.error || !f.nelson_siegel) {
-        el.innerHTML = `<div class="card" style="text-align:center;padding:50px;color:#94a3b8">No hay datos de renta fija disponibles o el modelo falló.</div>`;
-        return;
-      }
-
-      const ns = f.nelson_siegel;
-      if (!ns.exito) {
-        el.innerHTML = `<div class="card" style="text-align:center;padding:50px;color:#f87171">Error ajustando la curva Nelson-Siegel: ${ns.error}</div>`;
-        return;
-      }
-
-      const p = ns.parametros;
-      const cTeo = ns.curva_teorica;
-
-      el.innerHTML = `
-        <div class="g4">
-          <div class="mc"><div class="ml">Beta 0 (Nivel)</div><div class="mv">${f3(p.beta0)}</div><div class="ms">Largo Plazo</div></div>
-          <div class="mc"><div class="ml">Beta 1 (Pendiente)</div><div class="mv">${f3(p.beta1)}</div><div class="ms">Corto Plazo</div></div>
-          <div class="mc"><div class="ml">Beta 2 (Curvatura)</div><div class="mv">${f3(p.beta2)}</div><div class="ms">Medio Plazo</div></div>
-          <div class="mc"><div class="ml">Tau (Decaimiento)</div><div class="mv">${f3(p.tau)}</div><div class="ms">Localización</div></div>
-        </div>
-        <div class="card">
-          <div class="ct">Curva de Rendimientos (Treasury Yield Curve) — Ajuste Spline / Nelson-Siegel</div>
-          <div style="position:relative;height:350px"><canvas id="c-fixed"></canvas></div>
-          <div style="font-size:11px;color:#64748b;margin-top:15px;line-height:1.4">
-            <strong>Interpretación:</strong> La línea sólida azul representa el modelo continuo de Nelson-Siegel. 
-            Los puntos rojos son las tasas de mercado del Tesoro de EE.UU. (observaciones reales).
-            Una curva plana o invertida es una señal clásica de advertencia de contracción económica.
-          </div>
-        </div>
-      `;
-
-      regCh('c-fixed', {
-        type: 'line',
-        data: {
-          labels: cTeo.maduraciones.map(m => m.toFixed(1)),
-          datasets: [
-            { 
-              label: 'Modelo Nelson-Siegel', 
-              data: cTeo.tasas.map(t => t * 100), 
-              borderColor: '#22d3ee', 
-              borderWidth: 3, 
-              pointRadius: 0, 
-              fill: true,
-              backgroundColor: 'rgba(34, 211, 238, 0.05)',
-              tension: 0.4 
-            },
-            { 
-              label: 'Puntos Reales (Mercado)', 
-              data: f.puntos_reales.map(pt => ({ x: pt.maduracion.toFixed(1), y: pt.tasa * 100 })), 
-              type: 'scatter', 
-              backgroundColor: '#ef4444', 
-              borderColor: '#ffffff',
-              borderWidth: 1,
-              pointRadius: 6,
-              pointHoverRadius: 8
-            }
-          ]
+  /* ═══════════════════════════════════════════════
+     CHARTS
+  ═══════════════════════════════════════════════ */
+  function initCharts() {
+    // Bar chart — indicadores
+    const ctx1 = document.getElementById('chart-indicadores').getContext('2d');
+    G.chartInd = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Avance (%)',
+          data: [],
+          backgroundColor: 'rgba(34, 211, 238, 0.25)',
+          borderColor: 'rgba(34, 211, 238, 0.8)',
+          borderWidth: 1.5,
+          borderRadius: 4,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#192334' } },
+          y: { min: 0, max: 100, ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#192334' } },
         },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: true, labels: { color: tc } } },
-          scales: {
-            x: { 
-              ...axBase, 
-              title: { display: true, text: 'Maduración (Años)', color: tc },
-              type: 'category' 
-            },
-            y: { 
-              ...axBase, 
-              title: { display: true, text: 'Tasa de Rendimiento (%)', color: tc } 
-            }
-          }
-        }
-      });
-    }
+      },
+    });
 
-    /* ══ G. DERIVADOS (Black-Scholes) ═════════════════════ */
-    async function loadDeriv() {
-      const btn = document.getElementById('btn-deriv-calc');
-      btn.innerText = "Calculando..."; btn.disabled = true;
-      try {
-        const body = {
-          S: parseFloat(document.getElementById('bs-s').value),
-          K: parseFloat(document.getElementById('bs-k').value),
-          T: parseFloat(document.getElementById('bs-t').value) / 365,
-          r: parseFloat(document.getElementById('bs-r').value) / 100,
-          sigma: parseFloat(document.getElementById('bs-v').value) / 100,
-          tipo: document.getElementById('bs-type').value
-        };
-        const res = await api('/derivados/black-scholes', {}, 'POST', body);
-        renderDerivResults(res);
-      } catch (e) {
-        alert("Error: " + e.message);
-      } finally {
-        btn.innerText = "Simular Opción"; btn.disabled = false;
-      }
-    }
-
-    function renderDeriv() {
-      const el = document.getElementById('s-deriv');
-      el.innerHTML = `
-        <div class="card">
-          <div class="ct">Calculadora de Opciones Europeas — Black-Scholes-Merton</div>
-          <div class="form-panel" style="background:#05080f; margin-bottom:20px">
-            <div class="form-grp"><label>Precio (S)</label><input type="number" id="bs-s" class="form-input" value="100"></div>
-            <div class="form-grp"><label>Strike (K)</label><input type="number" id="bs-k" class="form-input" value="100"></div>
-            <div class="form-grp"><label>Días (T)</label><input type="number" id="bs-t" class="form-input" value="30"></div>
-            <div class="form-grp"><label>Tasa % (r)</label><input type="number" id="bs-r" class="form-input" value="5.25" step="0.01"></div>
-            <div class="form-grp"><label>Vol % (σ)</label><input type="number" id="bs-v" class="form-input" value="25"></div>
-            <div class="form-grp">
-              <label>Tipo</label>
-              <select id="bs-type" class="form-input" style="font-family:inherit">
-                <option value="call">CALL</option>
-                <option value="put">PUT</option>
-              </select>
-            </div>
-            <div class="form-grp"><button id="btn-deriv-calc" class="btn-analizar" onclick="loadDeriv()">Simular Opción</button></div>
-          </div>
-          <div id="bs-results">
-            <div style="text-align:center;padding:40px;color:#64748b">Ingrese parámetros y haga clic en Simular.</div>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderDerivResults(res) {
-      const cont = document.getElementById('bs-results');
-      const v = res.valoracion;
-      const g = v.griegas;
-      const s = res.superficie;
-
-      cont.innerHTML = `
-        <div class="g2">
-          <div class="mc" style="border-color:#3dd32c">
-            <div class="ml" style="color:#3dd32c">Precio Teórico</div>
-            <div class="mv" style="color:#3dd32c">$${f2(v.precio)}</div>
-            <div class="ms" style="color:#3dd32c">Valor justo del contrato</div>
-          </div>
-          <div class="g4" style="grid-column: span 1; margin-bottom:0">
-            <div class="mc"><div class="ml">Delta</div><div class="mv" style="font-size:18px">${f3(g.delta)}</div></div>
-            <div class="mc"><div class="ml">Gamma</div><div class="mv" style="font-size:18px">${f3(g.gamma)}</div></div>
-            <div class="mc"><div class="ml">Vega</div><div class="mv" style="font-size:18px">${f3(g.vega)}</div></div>
-            <div class="mc"><div class="ml">Theta</div><div class="mv" style="font-size:18px">${f3(g.theta)}</div></div>
-          </div>
-        </div>
-        <div class="card" style="margin-top:20px; background:#05080f">
-          <div class="ct">Superficie de Precios (Simulación S vs T)</div>
-          <div id="plotly-surface" style="height:500px; width:100%"></div>
-        </div>
-      `;
-
-      // Plotly 3D Surface
-      const data = [{
-        z: s.z_precios,
-        x: s.x_subyacente,
-        y: s.y_tiempo.map(t => Math.round(t * 365)),
-        type: 'surface',
-        colorscale: 'Viridis',
-        showscale: false
-      }];
-
-      const layout = {
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        plot_bgcolor: 'rgba(0,0,0,0)',
-        margin: { l: 0, r: 0, b: 0, t: 0 },
-        scene: {
-          xaxis: { title: 'Precio Subyacente (S)', color: '#94a3b8' },
-          yaxis: { title: 'Tiempo (Días)', color: '#94a3b8' },
-          zaxis: { title: 'Precio Opción', color: '#94a3b8' },
-          camera: { eye: { x: 1.5, y: 1.5, z: 1.2 } }
-        }
-      };
-
-      Plotly.newPlot('plotly-surface', data, layout);
-    }
-
-    /* ══ H. IA PREDICTIVA (Random Forest) ═════════════════ */
-    let mlAbortController = null;
-
-    async function runML() {
-      const ticker = document.getElementById('ml-ticker').value.toUpperCase();
-      const btn = document.getElementById('btn-ml');
-      const btnCancel = document.getElementById('btn-ml-cancel');
-      const cont = document.getElementById('ml-results');
-      
-      btn.innerText = "Pensando..."; btn.disabled = true;
-      if(btnCancel) { btnCancel.style.display = "inline-block"; }
-      cont.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div>Consultando oráculo de IA...</div>';
-
-      mlAbortController = new AbortController();
-
-      try {
-        const res = await api(`/predict/${ticker}`, {}, 'GET', null, mlAbortController.signal);
-        if (res.error) throw new Error(res.error);
-        
-        const sigColor = res.señal.includes('BUY') ? '#3dd32c' : res.señal.includes('SELL') ? '#ef4444' : '#f59e0b';
-        
-        cont.innerHTML = `
-          <div class="g2">
-            <div class="card" style="border-left:5px solid ${sigColor}">
-              <div class="ct">Predicción del Algoritmo (Próximos 5 días)</div>
-              <div style="font-size:32px; font-weight:800; color:${sigColor}; margin-bottom:10px">${res.señal}</div>
-              <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px">
-                <div class="bar-track" style="height:10px; background:#1e293b"><div class="bar-fill" style="width:${res.confianza * 100}%; background:${sigColor}; height:10px"></div></div>
-                <div style="font-family:'JetBrains Mono'; font-weight:700; color:${sigColor}">${pct(res.confianza, 1)}</div>
-              </div>
-              <div style="font-size:12px; color:#64748b">Confianza del modelo basada en Random Forest Classifier.</div>
-            </div>
-            <div class="card">
-              <div class="ct">Importancia de Variables (Features)</div>
-              <div id="ml-imp-cont" style="height:160px; position:relative"></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="ct">Distribución de Probabilidades</div>
-            <div class="g3">
-              ${Object.entries(res.probabilidades).map(([lab, val]) => `
-                <div style="text-align:center; background:#05080f; padding:10px; border-radius:8px">
-                  <div style="font-size:10px; color:#64748b; margin-bottom:5px">${lab}</div>
-                  <div style="font-size:18px; font-weight:700; color:${lab.includes('BUY') ? '#3dd32c' : lab.includes('SELL') ? '#ef4444' : '#f59e0b'}">${pct(val, 1)}</div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-
-        // Bar Chart para Importancia
-        const imp = res.importancia_variables;
-        const labels = Object.keys(imp);
-        const values = Object.values(imp).map(v => v * 100);
-
-        new Chart(document.createElement('canvas'), {}).destroy(); // Clear hack
-        const ctx = document.createElement('canvas');
-        document.getElementById('ml-imp-cont').appendChild(ctx);
-        
-        new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [{ data: values, backgroundColor: '#3b82f6', borderRadius: 4 }]
+    // Radar chart — 4 índices
+    const ctx2 = document.getElementById('chart-radar').getContext('2d');
+    G.chartRadar = new Chart(ctx2, {
+      type: 'radar',
+      data: {
+        labels: ['Avance', 'Impacto', 'Capacidad', 'Veracidad'],
+        datasets: [{
+          label: 'Índices Vigía',
+          data: [0, 0, 0, 0],
+          backgroundColor: 'rgba(129, 140, 248, 0.2)',
+          borderColor: 'rgba(129, 140, 248, 0.8)',
+          borderWidth: 2,
+          pointBackgroundColor: '#818cf8',
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          r: {
+            min: 0, max: 100,
+            ticks: { color: '#475569', font: { size: 9 }, stepSize: 25 },
+            grid: { color: '#192334' },
+            angleLines: { color: '#192334' },
+            pointLabels: { color: '#94a3b8', font: { size: 11 } },
           },
-          options: {
-            indexAxis: 'y',
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { ...axBase, title: { display: true, text: 'Importancia %', color: tc } },
-              y: { ...axBase }
-            }
-          }
-        });
+        },
+      },
+    });
+  }
 
-      } catch (e) {
-        if (e.name === 'AbortError') {
-          cont.innerHTML = `<div class="card" style="color:#f59e0b; text-align:center; padding:30px">Predicción cancelada por el usuario.</div>`;
-        } else {
-          cont.innerHTML = `<div class="card" style="color:#ef4444; text-align:center; padding:30px">Error en predicción: ${e.message}</div>`;
-        }
-      } finally {
-        btn.innerText = "Generar Predicción"; btn.disabled = false;
-        const btnCancel = document.getElementById('btn-ml-cancel');
-        if(btnCancel) { btnCancel.style.display = "none"; }
-        mlAbortController = null;
-      }
+  function updateBarChart() {
+    if (!G.chartInd || !G.indicadores.length) {
+      G.chartInd.data.labels = [];
+      G.chartInd.data.datasets[0].data = [];
+      G.chartInd.update();
+      return;
     }
+    const labels = G.indicadores.map(i => i.nombre.length > 16 ? i.nombre.slice(0, 16) + '…' : i.nombre);
+    const values = G.indicadores.map(i => i.porcentaje_avance || 0);
+    const colors = values.map(v => v >= 80 ? 'rgba(52,211,153,0.3)' : v >= 50 ? 'rgba(251,191,36,0.3)' : 'rgba(248,113,113,0.3)');
+    const borders = values.map(v => v >= 80 ? '#34d399' : v >= 50 ? '#fbbf24' : '#f87171');
+    G.chartInd.data.labels = labels;
+    G.chartInd.data.datasets[0].data = values;
+    G.chartInd.data.datasets[0].backgroundColor = colors;
+    G.chartInd.data.datasets[0].borderColor = borders;
+    G.chartInd.update();
+  }
 
-    function cancelML() {
-      if (mlAbortController) {
-        mlAbortController.abort();
-      }
-    }
+  function updateRadarChart(d) {
+    G.chartRadar.data.datasets[0].data = [
+      d.indice_avance || 0,
+      d.indice_impacto || 0,
+      d.indice_capacidad || 0,
+      d.indice_veracidad || 0,
+    ];
+    G.chartRadar.update();
+  }
 
-    function renderML() {
-      const el = document.getElementById('s-ml');
-      const optionsHtml = GLOBAL ? GLOBAL.tickers.map(t => `<option value="${t}">${t}</option>`).join('') : '<option value="AAPL">AAPL</option>';
-      
-      el.innerHTML = `
-        <div class="card">
-          <div class="ct">Módulo de Machine Learning — Predicción de Tendencia</div>
-          <div class="form-panel" style="background:#05080f; margin-bottom:20px; max-width:500px">
-            <div class="form-grp" style="flex:1">
-              <label>Ticker a Predecir</label>
-              <select id="ml-ticker" class="form-input" style="font-family:inherit">
-                ${optionsHtml}
-              </select>
-            </div>
-            <div class="form-grp" style="display:flex; gap:10px; align-items:flex-end">
-              <button id="btn-ml" class="btn-analizar" style="background:#a78bfa; color:#05080f" onclick="runPrediction()">Generar Predicción</button>
-              <button id="btn-ml-cancel" class="btn-analizar" style="background:transparent; border:1px solid #ef4444; color:#ef4444; display:none" onclick="cancelPrediction()">Cancelar</button>
-            </div>
-          </div>
-          <div id="ml-results">
-            <div style="text-align:center;padding:40px;color:#64748b">Seleccione un activo para ver la proyección de la IA.</div>
-          </div>
-        </div>
-      `;
-    }
+  /* ═══════════════════════════════════════════════
+     TABS
+  ═══════════════════════════════════════════════ */
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`tab-${name}-btn`).classList.add('active');
+    document.getElementById(`tab-${name}`).classList.add('active');
+  }
 
-    // Proxy para que el onclick del HTML funcione con la función definida dentro de renderML
-    window.runPrediction = runML;
-    window.cancelPrediction = cancelML;
-    window.renderFixed = renderFixed;
-    window.renderDeriv = renderDeriv;
-    window.renderML = renderML;
-    window.loadDeriv = loadDeriv;
+  /* ═══════════════════════════════════════════════
+     MODALES
+  ═══════════════════════════════════════════════ */
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+  // Cerrar al hacer clic fuera
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
 
-  </script>
+  /* ═══════════════════════════════════════════════
+     TOAST
+  ═══════════════════════════════════════════════ */
+  function toast(msg, type = 'info') {
+    const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+
+  /* ═══════════════════════════════════════════════
+     HELPERS
+  ═══════════════════════════════════════════════ */
+  function badgeEstado(e) {
+    const m = { ACTIVO: 'badge-activo', PAUSADO: 'badge-pausado', CERRADO: 'badge-cerrado' };
+    return `<span class="badge ${m[e] || 'badge-pendiente'}">● ${e}</span>`;
+  }
+  function badgeVeredicto(v) {
+    const m = { SUSTENTADA: 'badge-sustentada', REFUTADA: 'badge-refutada' };
+    return `<span class="badge ${m[v] || 'badge-pendiente'}">${v}</span>`;
+  }
+  function badgeSeveridad(s) {
+    const m = { ALTA: 'badge-refutada', MEDIA: 'badge-pausado', BAJA: 'badge-pendiente' };
+    return `<span class="badge ${m[s] || 'badge-pendiente'}">${s}</span>`;
+  }
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+  }
+</script>
 </body>
-
 </html>

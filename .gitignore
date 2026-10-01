@@ -1,69 +1,118 @@
-# Variables de entorno (API keys)
+# ─────────────────────────────────────────────
+# Variables de entorno (API keys — NUNCA en Git)
+# ─────────────────────────────────────────────
 .env
+.env.dev
+.env.prod
+.env.local
+backend/.env
+backend/.env.dev
 
-# Datos crudos descargados
+# ─────────────────────────────────────────────
+# Bases de datos locales
+# ─────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+backend/vigia_dev.db
+backend/risklab.db
+
+# ─────────────────────────────────────────────
+# Datasets subidos por usuarios
+# ─────────────────────────────────────────────
+backend/data/uploads/
 data/raw/
 
+# ─────────────────────────────────────────────
+# Modelos ML entrenados
+# ─────────────────────────────────────────────
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.pth
+models/
+
+# ─────────────────────────────────────────────
 # Python
+# ─────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 *.egg-info/
+*.egg
 dist/
 build/
 .eggs/
+.mypy_cache/
+.ruff_cache/
 
-# Entorno virtual
+# ─────────────────────────────────────────────
+# Entornos virtuales
+# ─────────────────────────────────────────────
 venv/
 .venv/
 env/
+backend/venv/
+backend/.venv/
 
+# ─────────────────────────────────────────────
+# Tests y cobertura
+# ─────────────────────────────────────────────
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+.pytest_cache/
+
+# ─────────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────────
+*.log
+logs/
+
+# ─────────────────────────────────────────────
+# Docker
+# ─────────────────────────────────────────────
+docker-volumes/
+
+# ─────────────────────────────────────────────
 # IDEs
+# ─────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# OS
+# ─────────────────────────────────────────────
+# Sistema operativo
+# ─────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Streamlit
-.streamlit/secrets.toml
-
+# ─────────────────────────────────────────────
 # Jupyter
+# ─────────────────────────────────────────────
 .ipynb_checkpoints/
 *.ipynb
 
-# LaTeX / Documentation
-*.tex
-*.log
-*.aux
-*.synctex.gz
+# ─────────────────────────────────────────────
+# Streamlit
+# ─────────────────────────────────────────────
+.streamlit/secrets.toml
 
+# ─────────────────────────────────────────────
 # R
+# ─────────────────────────────────────────────
 .Rhistory
 .Rproj.user/
 *.Rproj
 
-# IDE settings
-*.swp
-*.swo
-*~
-
-# OS cache
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Coverage reports
-htmlcov/
-.coverage
-.pytest_cache/
-coverage.xml
-
-# Built files
-dist/
-build/
-*.egg-info/
+# ─────────────────────────────────────────────
+# LaTeX
+# ─────────────────────────────────────────────
+*.aux
+*.synctex.gz

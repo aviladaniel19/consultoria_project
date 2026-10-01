@@ -1,24 +1,15 @@
 """
-models/__init__.py — Re-exporta todos los schemas Pydantic y modelos ORM.
-
-Esto mantiene la compatibilidad con los imports existentes:
-    from app.models import ActivosResponse, PortafolioRequest, ...
-
-Al mismo tiempo, la lógica está organizada en sub-módulos:
-    - models/schemas.py     → Pydantic (request/response)
-    - models/db_models.py   → SQLAlchemy ORM (tablas)
+models/__init__.py — Re-exporta schemas Pydantic y modelos ORM de Vigía.
 """
 
-# ── Re-exportar schemas Pydantic (compatibilidad con main.py actual) ──
-# El archivo schemas.py es el models.py original renombrado.
-# Lo importamos con wildcard para no romper ningún import existente.
+# ── Schemas Pydantic ──────────────────────────────────
 from app.models.schemas import *  # noqa: F401, F403
 
-# ── Exportar modelos ORM ──
+# ── Modelos ORM SQLAlchemy ────────────────────────────
 from app.models.db_models import (  # noqa: F401
-    Asset,
-    Price,
-    Portfolio,
-    PredictionLog,
-    SignalLog,
+    Proyecto,
+    Indicador,
+    Afirmacion,
+    Dataset,
+    AlertaLog,
 )

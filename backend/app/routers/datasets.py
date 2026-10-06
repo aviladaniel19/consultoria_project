@@ -10,6 +10,7 @@ Endpoints:
 """
 
 import io
+import json
 import logging
 import uuid
 from pathlib import Path
@@ -113,7 +114,8 @@ def info_dataset(nombre: str):
         "n_columnas": len(df.columns),
         "columnas": list(df.columns),
         "memoria_mb": round(df.memory_usage(deep=True).sum() / 1024**2, 3),
-        "muestra": df.head(5).to_dict(orient="records"),
+        # to_json convierte NaN/NaT a null (json.dumps falla con NaN)
+        "muestra": json.loads(df.head(5).to_json(orient="records", date_format="iso")),
     }
 
 

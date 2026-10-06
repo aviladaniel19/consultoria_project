@@ -12,6 +12,7 @@ Con Docker:
 
 import functools
 import logging
+import sys
 import time
 
 from fastapi import FastAPI, HTTPException, status
@@ -32,6 +33,12 @@ from app.routers import (
 # ──────────────────────────────────────────────
 # LOGGING
 # ──────────────────────────────────────────────
+
+# En Windows, si stdout/stderr están redirigidos (logs, servicios), Python usa
+# cp1252 y cualquier print() con emojis lanza UnicodeEncodeError → HTTP 500.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 logging.basicConfig(
     level=logging.INFO,

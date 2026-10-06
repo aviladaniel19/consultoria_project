@@ -4,6 +4,8 @@ Contiene la clase AnalizadorDatos para identificar tipos de variables
 y analizar patrones de datos faltantes.
 """
 
+import warnings
+
 import pandas as pd
 import numpy as np
 from typing import Dict, List
@@ -89,7 +91,10 @@ class AnalizadorDatos:
         try:
             muestra = serie.dropna().head(100)
             if len(muestra) > 0:
-                convertidos = pd.to_datetime(muestra, errors='coerce')
+                with warnings.catch_warnings():
+                    # Sondeo heurístico: es normal que pandas no infiera formato
+                    warnings.simplefilter("ignore", UserWarning)
+                    convertidos = pd.to_datetime(muestra, errors='coerce')
                 pct_exitoso = convertidos.notna().sum() / len(muestra)
                 return pct_exitoso > 0.5
         except Exception:

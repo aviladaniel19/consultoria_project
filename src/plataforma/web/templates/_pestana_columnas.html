@@ -1,0 +1,51 @@
+<div class="panel-in">
+<p class="tenue">Resumen calculado sobre las <span class="num">{{ f.filas | num }}</span> filas.</p>
+<div class="perfiles">
+  {% for p in perfiles %}
+  <article class="perfil">
+    <div class="perfil-top"><b>{{ p.nombre }}</b><span class="chip">{{ p.tipo }}</span></div>
+    {% if p.descripcion %}<p class="desc">{{ p.descripcion }}</p>{% endif %}
+    <div class="metricas">
+      <div><span>Vacíos</span><b>{{ p.nulos_pct | pct }}</b></div>
+      <div><span>Distintos</span><b>{{ p.distintos | num }}</b></div>
+      {% if p.tipo == "número" %}
+        <div><span>Media</span><b>{{ p.media | compacto }}</b></div>
+        <div><span>Mínimo</span><b>{{ p.minimo | compacto }}</b></div>
+        <div><span>Mediana</span><b>{{ p.mediana | compacto }}</b></div>
+        <div><span>Máximo</span><b>{{ p.maximo | compacto }}</b></div>
+      {% elif p.tipo == "fecha" %}
+        <div><span>Filas</span><b>{{ p.n | num }}</b></div>
+        <div><span>Desde</span><b>{{ p.minimo | fecha(false) }}</b></div>
+        <div><span>Hasta</span><b>{{ p.maximo | fecha(false) }}</b></div>
+      {% else %}
+        <div><span>Filas</span><b>{{ p.n | num }}</b></div>
+      {% endif %}
+    </div>
+    {% if p.hist %}
+    <svg class="histograma" viewBox="0 0 200 56" preserveAspectRatio="none" role="img"
+         aria-label="Distribución de {{ p.nombre }} en {{ 20 }} intervalos, escala {{ p.escala }}">
+      {% for h in p.hist %}{% set alto = 0 if h == 0 else [h * 54, 1.5] | max %}
+      <rect x="{{ loop.index0 * 10 + 1 }}" y="{{ 56 - alto }}" width="8" height="{{ alto }}"><title>{{ (h * 100) | round | int }} % del intervalo más alto</title></rect>
+      {% endfor %}
+    </svg>
+    <div class="hist-pie">
+      {% if p.tipo == "fecha" %}<span>{{ p.minimo | fecha(false) }}</span><span>distribución en el tiempo</span><span>{{ p.maximo | fecha(false) }}</span>
+      {% else %}<span>{{ p.minimo | compacto }}</span><span>escala {{ p.escala }}{% if p.desviacion is not none %} · desv. {{ p.desviacion | compacto }}{% endif %}</span><span>{{ p.maximo | compacto }}</span>{% endif %}
+    </div>
+    {% endif %}
+    {% if p.frecuentes and p.no_nulos and p.distintos == p.no_nulos %}
+    <p class="tenue" style="font-size: 0.85rem">Todos los valores son distintos: sirve como identificador.</p>
+    {% elif p.frecuentes %}
+    <div class="frecuentes" aria-label="Valores más frecuentes">
+      {% for v in p.frecuentes %}
+      <div>
+        <span title="{{ v.valor }}">{{ v.valor }}</span><span class="num tenue">{{ (v.n / p.n) | pct }}</span>
+        <div class="barra"><i style="width: {{ (v.n / p.n * 100) | round(1) }}%"></i></div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+</div>

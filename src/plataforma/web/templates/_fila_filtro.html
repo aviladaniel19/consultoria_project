@@ -1,0 +1,16 @@
+{# Una condición del explorador. `fila` es un Filtro o none (plantilla vacía). #}
+<div class="filtro">
+  <select name="fc" aria-label="Columna">
+    {% for c in f.columnas %}
+    <option value="{{ c.name }}" {% if fila and fila.columna == c.name %}selected{% endif %}>{{ c.name }} · {{ c.tipo }}</option>
+    {% endfor %}
+  </select>
+  <select name="fo" aria-label="Condición">
+    {% for clave, texto in OPERADORES.items() %}
+    <option value="{{ clave }}" {% if fila and fila.operador == clave %}selected{% endif %}>{{ texto }}</option>
+    {% endfor %}
+  </select>
+  <input class="campo" name="fv" aria-label="Valor" placeholder="Valor (fechas: AAAA-MM-DD)" value="{{ fila.valor if fila else '' }}"
+         {% if fila and fila.operador in ("vacio", "no_vacio") %}readonly{% endif %}>
+  <button type="button" class="btn chico" data-quitar-filtro aria-label="Quitar este filtro">✕</button>
+</div>

@@ -1,0 +1,29 @@
+# Ejemplo de fuente tipo archivo. Deshabilitada hasta que pongas un archivo real
+# en data/landing/ (p. ej. una serie descargada del portal de BanRep o del DANE).
+
+name: ejemplo_archivo
+description: Serie descargada manualmente y dejada en la zona de aterrizaje
+tags: [ejemplo, archivo]
+enabled: false
+type: file
+
+connection:
+  path: data/landing/serie.csv
+  format: csv
+  options:
+    sep: ";"
+    decimal: ","
+    encoding: utf-8
+
+incremental:
+  cursor_field: fecha
+  initial_value: "1900-01-01"
+
+primary_key: [fecha]
+
+contract:
+  required_columns: [fecha, valor]
+  checks:
+    - column: fecha
+      rule: unique
+      severity: error

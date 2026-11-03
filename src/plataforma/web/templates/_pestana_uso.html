@@ -1,0 +1,43 @@
+{% set tabla = f.capa ~ "." ~ f.nombre %}
+{% set url_csv = base ~ "/datasets/" ~ f.capa ~ "/" ~ f.nombre ~ "/csv" %}
+<div class="panel-in">
+<p class="tenue">Código listo para copiar. Pide al administrador de la plataforma tu usuario de solo lectura
+  o tu clave de acceso, y guárdalos como variables de entorno, nunca dentro del código.</p>
+<div class="bloques-codigo">
+  <div class="codigo">
+    <header><b>R · conexión directa a la base</b><button class="btn chico" type="button" data-copiar="cod-r-db">Copiar</button></header>
+<pre id="cod-r-db">library(DBI)
+con &lt;- dbConnect(RPostgres::Postgres(),
+                 host = "localhost", dbname = "plataforma",
+                 user = "estudiantes",
+                 password = Sys.getenv("CLAVE_PLATAFORMA"))
+datos &lt;- dbGetQuery(con, "SELECT * FROM {{ tabla }}")</pre>
+  </div>
+  <div class="codigo">
+    <header><b>R · descarga por la API</b><button class="btn chico" type="button" data-copiar="cod-r-api">Copiar</button></header>
+<pre id="cod-r-api">library(httr2)
+csv &lt;- request("{{ url_csv }}") |&gt;
+  req_headers(`X-API-Key` = Sys.getenv("PLATAFORMA_API_KEY")) |&gt;
+  req_perform() |&gt;
+  resp_body_string()
+datos &lt;- readr::read_csv(I(csv))</pre>
+  </div>
+  <div class="codigo">
+    <header><b>Python · pandas</b><button class="btn chico" type="button" data-copiar="cod-py">Copiar</button></header>
+<pre id="cod-py">import io, os
+import pandas as pd
+import requests
+
+r = requests.get("{{ url_csv }}",
+                 headers={"X-API-Key": os.environ["PLATAFORMA_API_KEY"]})
+r.raise_for_status()
+datos = pd.read_csv(io.StringIO(r.content.decode("utf-8-sig")))</pre>
+  </div>
+  <div class="codigo">
+    <header><b>SQL</b><button class="btn chico" type="button" data-copiar="cod-sql">Copiar</button></header>
+<pre id="cod-sql">SELECT *
+FROM {{ tabla }}
+LIMIT 100;</pre>
+  </div>
+</div>
+</div>

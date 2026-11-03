@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_macros.html" import estado %}
+{% block titulo %}Salud de las fuentes{% endblock %}
+{% block contenido %}
+<header class="encabezado">
+  <h1>Salud de las fuentes</h1>
+  <p class="lead">Estado de la última carga de cada fuente, su historial reciente y las reglas de calidad que no se cumplieron.</p>
+</header>
+
+<section class="resumen" aria-label="Resumen">
+  <div><b>{{ resumen.total }}</b><span>Fuentes registradas</span></div>
+  <div><b>{{ resumen.al_dia }}</b><span>Con la última carga exitosa</span></div>
+  <div><b>{{ resumen.atencion }}</b><span>Requieren atención</span></div>
+  <div><b>{{ resumen.deshabilitadas }}</b><span>Deshabilitadas</span></div>
+</section>
+
+<section class="fuentes-salud">
+  {% for s in fuentes %}
+  {% set grave = s.ultimo_estado in ("failed", "failed_quality") %}
+  <article id="fuente-{{ s.name }}" class="fuente-salud {{ 'grave' if grave else ('atencion' if s.ultimo_estado == 'success_with_warnings' else '') }}">
+    <div class="cab">
+      <div class="datos-clave">{{ estado(s.ultimo_estado) }}{% if not s.enabled %}<span class="chip">Deshabilitada</span>{% endif %}<span class="chip">{{ s.type | upper }}</span></div>
+      <h3>{{ s.name }}</h3>
+      <p class="tenue">{{ s.description }}</p>
+      <div class="datos-clave">
+        <span>Última carga <b>{{ s.ultima_carga | hace }}</b></span>
+        {% if s.ultimos_registros is not none %}<span class="num"><b>{{ s.ultimos_registros | num }}</b> registros</span>{% endif %}
+        {% if s.cursor %}<span>Datos hasta <b>{{ s.cursor[:10] if s.cursor[4:5] == "-" else s.cursor }}</b></span>{% endif %}
+      </div>
+      {% if s.tags %}<div class="datos-clave">{% for t in s.tags %}<a class="etiqueta" href="/?etiqueta={{ t | urlencode }}">#{{ t }}</a>{% endfor %}</div>{% endif %}
+    </div>
+    <div class="cab">
+      {% if s.cargas %}
+      {% set maxr = (s.cargas | map(attribute="records_loaded") | max) or 1 %}
+      <span class="tenue">Últimas {{ s.cargas | length }} cargas</span>
+      <div class="tira" role="img" aria-label="Historial de las últimas {{ s.cargas | length }} cargas de {{ s.name }}">
+        {% for c in s.cargas %}{% set e = ESTADOS.get(c.status) or ESTADOS.get(none) %}
+        <i class="{{ e[0] }}" style="height: {{ 30 + 70 * (c.records_loaded / maxr) }}%" title="{{ c.started_at | fecha }} · {{ e[2] }} · {{ c.records_loaded | num }} registros"></i>
+        {% endfor %}
+      </div>
+      <div class="tira-pie"><span>{{ s.cargas[0].started_at | fecha(false) }}</span><span>{{ s.cargas[-1].started_at | fecha(false) }}</span></div>
+      {% else %}
+      <span class="tenue">Sin cargas todavía.</span>
+      {% endif %}
+      {% if s.incumplidas %}
+      <div class="reglas">
+        {% for r in s.incumplidas %}
+        <span><span aria-hidden="true">✕</span> <span class="mono">{{ r.column_name }}</span>: {{ REGLAS.get(r.rule, r.rule) }} · {{ r.failure_rate | pct(2) }} de las filas (se toleraba {{ r.threshold | pct(2) }})</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div class="comando" title="Ejecuta este comando en la carpeta del proyecto para cargar la fuente ahora">
+        <code id="cmd-{{ s.name }}">docker compose run --rm cli ingest {{ s.name }}</code>
+        <button class="btn chico" type="button" data-copiar="cmd-{{ s.name }}">Copiar</button>
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <div class="vacio-grande"><b>No hay fuentes registradas.</b><span>Agrega un archivo YAML en la carpeta <span class="mono">sources/</span> y ejecuta una carga.</span></div>
+  {% endfor %}
+</section>
+
+<section class="leyenda" aria-label="Significado de los estados">
+  <b>Qué significa cada estado</b>
+  <span>{{ estado("success") }} los datos llegaron al dataset</span>
+  <span>{{ estado("success_with_warnings") }} llegaron, pero falló una regla de advertencia</span>
+  <span>{{ estado("failed_quality") }} no llegaron: falló una regla obligatoria</span>
+  <span>{{ estado("failed") }} la carga no se completó</span>
+</section>
+{% endblock %}

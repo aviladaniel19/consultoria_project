@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<div class="caja-centro">
+  <h1>{{ titulo }}</h1>
+  <p class="tenue">{{ mensaje }}</p>
+  <a class="btn primario" href="/">Volver al catálogo</a>
+</div>
+{% endblock %}

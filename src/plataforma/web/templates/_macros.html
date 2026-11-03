@@ -1,0 +1,15 @@
+{# Piezas que se repiten entre pantallas. #}
+{% macro estado(s) -%}
+{% set e = ESTADOS.get(s) or ESTADOS.get(none) -%}
+<span class="chip {{ e[0] }}"><span aria-hidden="true">{{ e[1] }}</span>{{ e[2] }}</span>
+{%- endmacro %}
+
+{% macro capa_chip(capa) -%}
+{% if capa == "estandarizado" -%}
+<span class="chip capa" title="Dato depurado: tipos correctos, sin duplicados y sin cargas en cuarentena">Estandarizado</span>
+{%- else -%}
+<span class="chip capa" title="Tablas agregadas y modeladas para reportes">Analítico</span>
+{%- endif %}
+{%- endmacro %}
+
+{% macro nombre_capa(capa) -%}{{ "Estandarizado" if capa == "estandarizado" else "Analítico" }}{%- endmacro %}

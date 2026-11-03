@@ -1,0 +1,57 @@
+# Procesos de contratación publicados en SECOP II (Colombia Compra Eficiente)
+# Portal: https://www.datos.gov.co  ·  dataset Socrata p6dx-8zbt
+#
+# Antes de la primera carga revisa los nombres reales de los campos con:
+#   plataforma inspect secop_procesos
+# Socrata a veces trunca nombres largos (p. ej. "fecha_de_publicacion_del").
+
+name: secop_procesos
+description: Procesos de contratación pública publicados en SECOP II
+owner: daniel
+tags: [contratacion, colombia, datos-abiertos, socrata]
+type: rest
+schedule: "15 6 * * *"            # todos los días 06:15 (lo lee el orquestador)
+
+connection:
+  base_url: https://www.datos.gov.co/resource/p6dx-8zbt.json
+  auth:
+    type: header
+    header: X-App-Token
+    value: "${SOCRATA_APP_TOKEN:-}"  # opcional en Socrata, pero sube el límite de peticiones
+  params:
+    # :id (id de fila de Socrata) desempata: miles de filas comparten fecha y sin un
+    # orden total la paginación por offset puede saltar o repetir registros
+    $order: fecha_de_publicacion_del ASC, :id ASC
+  timeout_s: 90
+
+pagination:
+  type: offset
+  limit_param: $limit
+  offset_param: $offset
+  page_size: 5000
+
+max_records: 50000                 # tope por ejecución para no saturar la API
+
+incremental:
+  cursor_field: fecha_de_publicacion_del
+  initial_value: "2026-01-01T00:00:00"
+  filter:
+    param: $where
+    template: "{field} > '{value}'"
+
+primary_key: [id_del_proceso]
+
+contract:
+  required_columns: [id_del_proceso, entidad, fecha_de_publicacion_del]
+  on_schema_change: record
+  checks:
+    - column: id_del_proceso
+      rule: not_null
+      severity: error
+    - column: precio_base
+      rule: non_negative
+      max_failure_rate: 0.001
+    - column: nit_entidad
+      rule: regex
+      pattern: "^[0-9]+$"
+      max_failure_rate: 0.01

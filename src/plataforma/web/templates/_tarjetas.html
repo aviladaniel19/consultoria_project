@@ -1,0 +1,29 @@
+{% from "_macros.html" import estado, capa_chip %}
+<p class="conteo">{{ items | length }} {{ "conjunto de datos" if items | length == 1 else "conjuntos de datos" }}{% if q %} para «{{ q }}»{% endif %}{% if etiqueta %} en el tema «{{ etiqueta | replace("-", " ") }}»{% endif %}</p>
+{% if items %}
+<div class="tarjetas">
+  {% for d in items %}
+  <a class="tarjeta" href="/datos/{{ d.capa }}/{{ d.nombre }}">
+    <div class="tarjeta-top">
+      {{ capa_chip(d.capa) }}
+      {% if d.fuente %}{{ estado(d.fuente.ultimo_estado) }}{% endif %}
+    </div>
+    <h3>{{ d.titulo }}</h3>
+    {% if d.descripcion %}<p class="desc">{{ d.descripcion }}</p>{% endif %}
+    <div class="pie-tarjeta">
+      <span class="num"><b>{{ d.filas | num }}</b> {{ "fila" if d.filas == 1 else "filas" }} · {{ d.n_columnas }} columnas</span>
+      {% if d.construida_en %}<span>Actualizado {{ d.construida_en | hace }}</span>{% endif %}
+    </div>
+    {% if d.etiquetas %}
+    <div class="pie-tarjeta">{% for e in d.etiquetas %}<span>#{{ e }}</span>{% endfor %}</div>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="vacio-grande">
+  <b>No encontramos conjuntos de datos{% if q %} para «{{ q }}»{% endif %}.</b>
+  <span>Prueba con otra palabra o con el nombre de una columna, por ejemplo «precio» o «departamento».</span>
+  {% if q or etiqueta %}<a class="btn chico" href="/">Ver todo el catálogo</a>{% endif %}
+</div>
+{% endif %}

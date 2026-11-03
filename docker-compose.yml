@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: plataforma
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-plataforma}
+      POSTGRES_DB: plataforma
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plataforma"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: .
+    image: plataforma-datos:local
+    command: uvicorn plataforma.api.main:app --host 0.0.0.0 --port 8000
+    env_file: .env
+    environment:
+      PLATAFORMA_DATABASE_URL: postgresql+psycopg://plataforma:${POSTGRES_PASSWORD:-plataforma}@db:5432/plataforma
+    ports: ["8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+
+  # Tareas puntuales:  docker compose run --rm cli ingest --all
+  cli:
+    build: .
+    image: plataforma-datos:local
+    entrypoint: ["plataforma"]
+    env_file: .env
+    environment:
+      PLATAFORMA_DATABASE_URL: postgresql+psycopg://plataforma:${POSTGRES_PASSWORD:-plataforma}@db:5432/plataforma
+    volumes: ["./sources:/app/sources:ro", "./data:/app/data", "./transform:/app/transform"]
+    depends_on:
+      db: {condition: service_healthy}
+    profiles: [tools]
+
+  # docker compose run --rm dbt build
+  dbt:
+    build: .
+    image: plataforma-datos:local
+    working_dir: /app/transform
+    entrypoint: ["dbt"]
+    environment:
+      PGHOST: db
+      PGPASSWORD: ${POSTGRES_PASSWORD:-plataforma}
+      DBT_PROFILES_DIR: /app/transform
+    volumes: ["./transform:/app/transform"]
+    depends_on:
+      db: {condition: service_healthy}
+    profiles: [tools]
+
+volumes:
+  pgdata:

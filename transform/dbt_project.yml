@@ -1,0 +1,29 @@
+name: plataforma
+version: "0.1.0"
+config-version: 2
+profile: plataforma
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+target-path: target
+clean-targets: [target, dbt_packages]
+
+models:
+  plataforma:
+    # Las descripciones de schema.yml quedan como comentarios en PostgreSQL: el catálogo
+    # web y la API las muestran. Convención: la primera línea es el título del dataset.
+    +persist_docs:
+      relation: true
+      columns: true
+    # Registra cuándo se reconstruyó cada tabla (el frontend lo muestra como "actualizado")
+    +post-hook:
+      - >-
+        insert into meta.construcciones (tabla, construida_en)
+        values ('{{ this.schema }}.{{ this.identifier }}', now())
+        on conflict (tabla) do update set construida_en = excluded.construida_en
+    estandarizado:
+      +schema: estandarizado
+      +materialized: table
+    analitico:
+      +schema: analitico
+      +materialized: table

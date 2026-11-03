@@ -1,0 +1,30 @@
+{# Tabla de filas. Con `ordenable` los encabezados ordenan (requiere `enlace` y `orden`). #}
+<div class="tabla-scroll">
+<table>
+  <thead>
+    <tr>
+      {% for c in tabla.columns %}
+      {% if ordenable %}
+        {% set asc = orden == c.name %}{% set desc = orden == "-" ~ c.name %}
+        {% set url = enlace(orden=("-" ~ c.name) if asc else c.name, p=none) %}
+        <th scope="col" {% if asc %}aria-sort="ascending"{% elif desc %}aria-sort="descending"{% endif %}>
+          <a href="{{ url }}" hx-get="{{ url }}" hx-target="#resultado" hx-push-url="true"
+             title="{{ c.description or 'Ordenar por ' ~ c.name }}">{{ c.name }}<span aria-hidden="true">{{ "▲" if asc else ("▼" if desc else "") }}</span></a>
+        </th>
+      {% else %}
+        <th scope="col" title="{{ c.description or '' }}">{{ c.name }}</th>
+      {% endif %}
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for fila in tabla.data %}
+    <tr>
+      {% for c in tabla.columns %}{% set v = fila[c.name] %}
+      <td class="{{ 'n' if c.type in NUMERICOS }}{{ ' vacia' if v is none }}{{ ' largo' if v is string and v | length > 60 }}">{{ v | celda }}</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

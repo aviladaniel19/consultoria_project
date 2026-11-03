@@ -1,0 +1,38 @@
+{% from "_iconos.html" import icono %}
+{% if error %}
+<div class="alerta" role="alert">{{ error }}<br>Revisa el valor: los números van sin puntos de miles (1250000) y las fechas como AAAA-MM-DD.</div>
+{% endif %}
+{% if tabla %}
+{# Orden y tamaño de página viajan con el formulario de filtros aunque estén fuera de él (atributo form). #}
+<input type="hidden" name="orden" value="{{ orden or '' }}" form="form-filtros">
+<div class="barra-resultado">
+  <span><b class="num">{{ tabla.total | num }}</b> {{ "fila coincide" if tabla.total == 1 else "filas coinciden" }}{% if tabla.total %} · página {{ pagina | num }} de {{ paginas | num }}{% endif %}</span>
+  <div class="botonera">
+    <label class="tenue" for="tamano">Filas por página</label>
+    <select id="tamano" name="n" form="form-filtros" data-enviar-al-cambiar>
+      {% for t in tamanos %}<option value="{{ t }}" {% if t == tamano %}selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select>
+    <a class="btn chico" href="/explorar/{{ capa }}/{{ nombre }}/csv?{{ query_csv }}" download title="Descarga todas las filas que cumplen los filtros">{{ icono("descargar") }}CSV</a>
+    <a class="btn chico" href="/explorar/{{ capa }}/{{ nombre }}/csv?{{ query_csv }}{{ '&' if query_csv }}sep=%3B" download title="Separado por punto y coma, decimales con coma">{{ icono("descargar") }}CSV para Excel</a>
+  </div>
+</div>
+{% if tabla.data %}
+  {% set ordenable = true %}{% include "_tabla_datos.html" %}
+{% else %}
+<div class="vacio-grande"><b>Ninguna fila cumple los filtros.</b><span>Quita o cambia alguna condición.</span></div>
+{% endif %}
+{% if paginas > 1 %}
+<nav class="paginacion" aria-label="Páginas">
+  {% macro pag(n, texto=none) -%}
+    {% set url = enlace(p=n) %}<a href="{{ url }}" hx-get="{{ url }}" hx-target="#resultado" hx-push-url="true">{{ texto or (n | num) }}</a>
+  {%- endmacro %}
+  {% if pagina > 1 %}{{ pag(pagina - 1, "‹ Anterior") }}{% else %}<span class="deshabilitado">‹ Anterior</span>{% endif %}
+  {% for n in range([1, pagina - 2] | max, [paginas, pagina + 2] | min + 1) %}
+    {% if loop.first and n > 1 %}{{ pag(1) }}{% if n > 2 %}<span class="deshabilitado">…</span>{% endif %}{% endif %}
+    {% if n == pagina %}<span class="actual" aria-current="page">{{ n | num }}</span>{% else %}{{ pag(n) }}{% endif %}
+    {% if loop.last and n < paginas %}{% if n < paginas - 1 %}<span class="deshabilitado">…</span>{% endif %}{{ pag(paginas) }}{% endif %}
+  {% endfor %}
+  {% if pagina < paginas %}{{ pag(pagina + 1, "Siguiente ›") }}{% else %}<span class="deshabilitado">Siguiente ›</span>{% endif %}
+</nav>
+{% endif %}
+{% endif %}

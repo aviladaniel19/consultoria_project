@@ -1,0 +1,378 @@
+<meta charset="utf-8">
+<title>Revisión plataforma-datos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: columna de lectura única (~68ch) con bandas por sección; capas origen/estandarizado/analítico como hilo cromático */
+:root {
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --fg: #1b2229;
+  --muted: #5b6672;
+  --line: #dde2e7;
+  --accent: #1d5e78;
+  --accent-soft: #e3eef3;
+  --bronze: #a8642c;
+  --silver: #7d8a96;
+  --gold: #b38a14;
+  --crit: #b3261e;
+  --crit-soft: #fbe9e7;
+  --high: #c25e00;
+  --high-soft: #fdf0e3;
+  --low: #8a6d00;
+  --low-soft: #fbf4dc;
+  --ok: #2e7d4f;
+  --ok-soft: #e4f3ea;
+  --code-bg: #eef1f4;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171c; --surface: #1a2027; --fg: #e3e8ec; --muted: #9aa6b1; --line: #2c353e;
+    --accent: #6fb6d2; --accent-soft: #1b3440;
+    --bronze: #d38c52; --silver: #a9b4be; --gold: #dcb53e;
+    --crit: #f2867d; --crit-soft: #3a1f1d; --high: #f0a35a; --high-soft: #3a2a18;
+    --low: #e0c661; --low-soft: #352f17; --ok: #74c597; --ok-soft: #1a3325; --code-bg: #232b33;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171c; --surface: #1a2027; --fg: #e3e8ec; --muted: #9aa6b1; --line: #2c353e;
+  --accent: #6fb6d2; --accent-soft: #1b3440;
+  --bronze: #d38c52; --silver: #a9b4be; --gold: #dcb53e;
+  --crit: #f2867d; --crit-soft: #3a1f1d; --high: #f0a35a; --high-soft: #3a2a18;
+  --low: #e0c661; --low-soft: #352f17; --ok: #74c597; --ok-soft: #1a3325; --code-bg: #232b33;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+}
+.wrap {
+  max-width: 860px; margin: 0 auto;
+  padding-block: 40px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 48px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.75rem); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.6rem; font-weight: 600; }
+h3 { font-size: 1.2rem; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--accent); }
+.eyebrow {
+  font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+section { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.section-head { display: flex; flex-direction: column; gap: 6px; border-top: 2px solid var(--fg); padding-top: 14px; }
+
+/* Cabecera */
+header { display: flex; flex-direction: column; gap: 16px; }
+.layers { display: flex; gap: 6px; align-items: center; font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
+.layers span { display: inline-flex; align-items: center; gap: 6px; }
+.layers i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.verdict {
+  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--ok);
+  padding: 16px 18px; border-radius: 6px;
+}
+.verdict strong { color: var(--ok); }
+.meta-line { color: var(--muted); font-size: 0.92rem; }
+
+/* Resumen de verificación */
+.checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.check {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+}
+.check .num { font-family: var(--font-display); font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+.check .lbl { font-size: 0.88rem; color: var(--muted); }
+
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-mono); font-weight: 500; font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--code-bg); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; font-family: var(--font-mono); }
+.pass { color: var(--ok); font-weight: 600; white-space: nowrap; }
+
+/* Gráfico del corte */
+.figure { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.bar-area { position: relative; padding-top: 30px; }
+.bar { display: flex; height: 44px; border-radius: 4px; overflow: hidden; gap: 2px; }
+.seg { display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 0.72rem; color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.seg.loaded { background: var(--accent); }
+.seg.cut { background: repeating-linear-gradient(135deg, var(--crit) 0 6px, var(--crit-soft) 6px 12px); color: var(--crit); }
+.cap { position: absolute; top: 0; bottom: -6px; border-left: 2px dashed var(--fg); }
+.cap span { position: absolute; top: 0; left: 6px; font-family: var(--font-mono); font-size: 0.74rem; white-space: nowrap; transform: translateX(-100%); padding-right: 12px; }
+.axis { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.85rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.compare div { border-radius: 6px; padding: 12px 14px; font-size: 0.92rem; display: flex; flex-direction: column; gap: 4px; }
+.compare .before { background: var(--crit-soft); }
+.compare .after { background: var(--ok-soft); }
+.compare b { font-family: var(--font-display); font-size: 1rem; }
+
+/* Hallazgos */
+.findings { display: flex; flex-direction: column; gap: 14px; }
+.finding {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0;
+}
+.finding-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.chip {
+  font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 999px; font-weight: 500; white-space: nowrap;
+}
+.chip.crit { background: var(--crit-soft); color: var(--crit); }
+.chip.high { background: var(--high-soft); color: var(--high); }
+.chip.low { background: var(--low-soft); color: var(--low); }
+.chip.fixed { background: var(--ok-soft); color: var(--ok); }
+.finding.crit { border-left: 4px solid var(--crit); }
+.finding.high { border-left: 4px solid var(--high); }
+.finding.low { border-left: 4px solid var(--low); }
+dl.facts { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 0.95rem; }
+dl.facts dt { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+dl.facts dd { margin: 0; min-width: 0; }
+.where { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); overflow-wrap: anywhere; }
+@media (max-width: 520px) {
+  dl.facts { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  dl.facts dd { margin-bottom: 8px; }
+}
+ul.minor { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 8px; }
+ul.minor li { max-width: 68ch; }
+
+/* Pendientes */
+ol.pending { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; counter-reset: p; }
+ol.pending li {
+  counter-increment: p; display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px;
+}
+ol.pending li::before {
+  content: counter(p); font-family: var(--font-display); font-weight: 700; font-size: 1.3rem;
+  color: var(--accent); line-height: 1.3;
+}
+ol.pending b { display: block; }
+
+.leftovers { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.leftovers div { border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 0.93rem; min-width: 0; }
+.cmd {
+  display: flex; gap: 8px; align-items: center; background: var(--code-bg); border-radius: 6px;
+  padding: 8px 10px; font-family: var(--font-mono); font-size: 0.85rem; flex-wrap: wrap;
+}
+.cmd code { background: none; padding: 0; flex: 1 1 auto; }
+button.copy {
+  font: inherit; font-size: 0.78rem; border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+  border-radius: 4px; padding: 3px 10px; cursor: pointer;
+}
+button.copy:hover { border-color: var(--accent); color: var(--accent); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 14px; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Informe de revisión · 28 de octubre de 2026</div>
+    <h1>Revisión de plataforma-datos</h1>
+    <div class="layers" aria-label="Capas de la plataforma">
+      <span><i style="background: var(--bronze)"></i>origen</span>→
+      <span><i style="background: var(--silver)"></i>estandarizado</span>→
+      <span><i style="background: var(--gold)"></i>analítico</span>
+      <span>· PostgreSQL 16 · dbt · FastAPI</span>
+    </div>
+    <div class="verdict">
+      <p><strong>El proyecto funciona de punta a punta.</strong> Antes de corregirlo tenía un fallo grave:
+      perdía datos de SECOP en silencio en cada carga incremental, además de otros cinco problemas.
+      Todos quedaron corregidos y verificados con pruebas automáticas y con una ejecución real contra datos.gov.co.</p>
+    </div>
+    <p class="meta-line">Alcance: registro de fuentes, ingesta, calidad, almacenamiento, API, CLI, modelos dbt, Docker, pruebas y YAML de fuentes.</p>
+  </header>
+
+  <section aria-labelledby="s-verif">
+    <div class="section-head">
+      <span class="eyebrow">1 · Verificación</span>
+      <h2 id="s-verif">Qué se ejecutó</h2>
+    </div>
+    <div class="checks">
+      <div class="check"><span class="num">24/24</span><span class="lbl">pruebas pasan (23 unitarias + integración)</span></div>
+      <div class="check"><span class="num">8/8</span><span class="lbl">pasos de <code>dbt build</code> (3 modelos, 5 pruebas)</span></div>
+      <div class="check"><span class="num">16</span><span class="lbl">endpoints de la API probados</span></div>
+      <div class="check"><span class="num">100 000</span><span class="lbl">registros reales de SECOP cargados en 2 ejecuciones</span></div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Paso</th><th>Resultado</th></tr></thead>
+        <tbody>
+          <tr><td>Pruebas unitarias (Python 3.13, pandas 3.1, FastAPI 0.162, SQLAlchemy 2.1)</td><td class="pass">✓ 23 pasan</td></tr>
+          <tr><td>Prueba de integración contra PostgreSQL 16 real</td><td class="pass">✓ pasa</td></tr>
+          <tr><td><code>docker compose build</code> + <code>up db api</code></td><td class="pass">✓ OK</td></tr>
+          <tr><td><code>cli validate</code>, <code>inspect</code>, <code>ingest --all</code> contra la API real de SECOP</td><td class="pass">✓ 2 cargas de 50 000</td></tr>
+          <tr><td><code>cli dbt-sources</code> + <code>dbt build</code></td><td class="pass">✓ 8/8</td></tr>
+          <tr><td>Endpoints de la API, incluidos los errores esperados (404, 400, 422)</td><td class="pass">✓ 16/16</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-crit">
+    <div class="section-head">
+      <span class="eyebrow">2 · Hallazgo principal</span>
+      <h2 id="s-crit">Cómo se perdían datos con <code>max_records</code></h2>
+    </div>
+    <p>La fecha de publicación de SECOP solo distingue días (<code>2026-01-08T00:00:00.000</code>) y hay entre
+    5 000 y 27 000 procesos por día. El tope de 50 000 registros por ejecución cortaba la carga a mitad de un día.
+    El cursor saltaba a ese día, y la siguiente carga pedía <code>fecha &gt; '2026-01-08'</code>: el resto de ese día no volvía a pedirse nunca.</p>
+
+    <figure class="figure" style="margin: 0">
+      <div class="eyebrow">Primera carga · filas por día desde el 2 de enero de 2026 (a escala)</div>
+      <div class="bar-area">
+        <div class="bar" role="img" aria-label="Filas por día: 2 ene 5506, 3 ene 2387, 4 ene 1480, 5 ene 8562, 6 ene 13590, 7 ene 14806, 8 ene 16450 de las cuales 3669 entran antes del tope de 50000">
+          <div class="seg loaded" style="flex: 5506" title="2 ene · 5 506">2 ene</div>
+          <div class="seg loaded" style="flex: 2387" title="3 ene · 2 387"></div>
+          <div class="seg loaded" style="flex: 1480" title="4 ene · 1 480"></div>
+          <div class="seg loaded" style="flex: 8562" title="5 ene · 8 562">5 ene</div>
+          <div class="seg loaded" style="flex: 13590" title="6 ene · 13 590">6 ene</div>
+          <div class="seg loaded" style="flex: 14806" title="7 ene · 14 806">7 ene</div>
+          <div class="seg loaded" style="flex: 3669" title="8 ene · 3 669 cargadas"></div>
+          <div class="seg cut" style="flex: 12781" title="8 ene · 12 781 fuera del tope">8 ene</div>
+        </div>
+        <!-- 50 000 / 62 781 = 79,64 % del total; se descuentan los 7 huecos de 2px -->
+        <div class="cap" style="left: calc(79.64% + 1px)"><span>tope 50 000</span></div>
+      </div>
+      <div class="axis"><span>0</span><span>62 781 filas (2–8 ene)</span></div>
+      <div class="legend">
+        <span><i style="background: var(--accent)"></i>Entra en la primera carga</span>
+        <span><i style="background: repeating-linear-gradient(135deg, var(--crit) 0 3px, var(--crit-soft) 3px 6px)"></i>8 de enero fuera del tope (12 781 filas)</span>
+      </div>
+      <div class="compare">
+        <div class="before"><b>Código original</b>Cursor → <span class="mono">2026-01-08</span>. Las 12 781 filas restantes del 8 de enero se pierden, y el patrón se repite en cada ejecución.</div>
+        <div class="after"><b>Corregido</b>Cursor → <span class="mono">2026-01-07</span>. La segunda carga pide el 8 de enero completo: 16 450 filas, igual al total de la fuente.</div>
+      </div>
+    </figure>
+    <p>En la capa de origen el 8 de enero suma 20 119 filas: 3 669 de la primera carga y 16 450 de la segunda.
+    Las repetidas se resuelven en la capa estandarizada por la llave <code>id_del_proceso</code>.</p>
+  </section>
+
+  <section aria-labelledby="s-fix">
+    <div class="section-head">
+      <span class="eyebrow">3 · Correcciones</span>
+      <h2 id="s-fix">Fallos encontrados y corregidos</h2>
+    </div>
+    <div class="findings">
+
+      <article class="finding crit">
+        <div class="finding-top"><span class="chip crit">Crítico</span><h3>Pérdida de datos con <code>max_records</code></h3><span class="chip fixed">Corregido</span></div>
+        <dl class="facts">
+          <dt>Dónde</dt><dd class="where">src/plataforma/ingestion/engine.py</dd>
+          <dt>Qué pasaba</dt><dd>Al cortar la carga a mitad de un día, el cursor avanzaba a ese día y el resto de sus filas quedaba excluido por el filtro estricto <code>&gt;</code>.</dd>
+          <dt>Corrección</dt><dd>Nueva función <code>next_cursor()</code>: si el tope cortó la carga, el cursor se queda en el valor anterior y ese grupo se vuelve a pedir completo.</dd>
+          <dt>Verificado</dt><dd>Con datos reales (ver sección 2) y con una prueba unitaria nueva.</dd>
+        </dl>
+      </article>
+
+      <article class="finding high">
+        <div class="finding-top"><span class="chip high">Alto</span><h3>Paginación sin orden estable</h3><span class="chip fixed">Corregido</span></div>
+        <dl class="facts">
+          <dt>Dónde</dt><dd class="where">sources/secop_procesos.yml</dd>
+          <dt>Qué pasaba</dt><dd>Se ordenaba solo por fecha y miles de filas comparten la misma. Con paginación por <code>offset</code>, Socrata puede saltar o repetir filas entre páginas.</dd>
+          <dt>Corrección</dt><dd><code>$order: fecha_de_publicacion_del ASC, :id ASC</code>. Se comprobó que la API lo acepta.</dd>
+        </dl>
+      </article>
+
+      <article class="finding high">
+        <div class="finding-top"><span class="chip high">Alto</span><h3>Secretos guardados en claro en el catálogo</h3><span class="chip fixed">Corregido</span></div>
+        <dl class="facts">
+          <dt>Dónde</dt><dd class="where">src/plataforma/storage/catalog.py</dd>
+          <dt>Qué pasaba</dt><dd>Solo se ocultaba el bloque <code>auth</code>. Un <code>headers: {Authorization: …}</code> o un <code>params: {api_key: …}</code> quedaba visible en <code>meta.sources</code> y en <code>GET /sources/{name}</code>.</dd>
+          <dt>Corrección</dt><dd>También se ocultan las claves de <code>headers</code> y <code>params</code> cuyo nombre parece una credencial (auth, token, key, secret, password…).</dd>
+        </dl>
+      </article>
+
+      <article class="finding low">
+        <div class="finding-top"><span class="chip low">Medio</span><h3><code>plataforma validate</code> se caía en Windows</h3><span class="chip fixed">Corregido</span></div>
+        <dl class="facts">
+          <dt>Dónde</dt><dd class="where">src/plataforma/cli.py</dd>
+          <dt>Qué pasaba</dt><dd>Con la salida redirigida (archivo, tubería, tarea programada o CI) fallaba con <code>UnicodeEncodeError</code> por el carácter <code>✓</code>.</dd>
+          <dt>Corrección</dt><dd>El carácter se reemplaza en vez de romper el comando. Se agregó el alias <code>-n</code> en <code>inspect</code>; antes solo existía <code>--n</code>.</dd>
+        </dl>
+      </article>
+
+      <article class="finding low">
+        <div class="finding-top"><span class="chip low">Medio</span><h3>Fallos menores en la ingesta REST</h3><span class="chip fixed">Corregido</span></div>
+        <dl class="facts">
+          <dt>Dónde</dt><dd class="where">src/plataforma/ingestion/rest.py</dd>
+          <dt>Autenticación</dt><dd>Con un cliente HTTP inyectado, las cabeceras de autenticación no se enviaban. Ahora van en cada petición.</dd>
+          <dt>Retry-After</dt><dd>Si el servidor enviaba la espera como fecha HTTP en vez de segundos, se lanzaba <code>ValueError</code>. Ahora acepta ambos formatos.</dd>
+        </dl>
+      </article>
+
+      <article class="finding low">
+        <div class="finding-top"><span class="chip low">Medio</span><h3>Otros problemas</h3><span class="chip fixed">Corregido</span></div>
+        <ul class="minor">
+          <li><b>Ejecuciones colgadas.</b> Si fallaba la creación de la tabla de origen, la ejecución quedaba en <code>running</code> para siempre. Esa creación ahora está dentro del <code>try</code>.</li>
+          <li><b>Cursores nulos.</b> Los registros sin valor de cursor se volvían a cargar en cada ejecución. Ahora se tratan como en SQL: nunca cuentan como posteriores.</li>
+          <li><b>dbt beta.</b> pip instalaba <code>dbt-core 1.13.0b1</code>. Se limitó a versiones estables en <span class="where">pyproject.toml</span> y ahora usa la 1.12.6.</li>
+          <li><b>Imágenes duplicadas.</b> Docker construía tres imágenes idénticas de 1,2 GB. Ahora <span class="where">docker-compose.yml</span> usa una sola: <code>plataforma-datos:local</code>.</li>
+        </ul>
+      </article>
+
+    </div>
+  </section>
+
+  <section aria-labelledby="s-pend">
+    <div class="section-head">
+      <span class="eyebrow">4 · Pendientes</span>
+      <h2 id="s-pend">Observaciones que requieren una decisión</h2>
+    </div>
+    <ol class="pending">
+      <li><div><b><code>id_del_proceso</code> no es único.</b>El 2 de enero hay 5 506 filas y solo 5 253 ids distintos: el dataset tiene una fila por proceso × proveedor adjudicado. La capa estandarizada se queda con una fila arbitraria por proceso. Sirve para <code>precio_base</code>, pero pierde los datos de adjudicación; si se necesitan, hace falta un modelo aparte.</div></li>
+      <li><div><b>No se capturan actualizaciones.</b>El cursor usa la fecha de publicación, así que los cambios de fase o adjudicación de procesos ya cargados no llegan. Para eso habría que usar <code>fecha_de_ultima_publicaci</code>.</div></li>
+      <li><div><b>Ritmo de carga.</b>Hay 1,56 millones de registros desde 2026. A 50 000 por ejecución, ponerse al día toma unas 31 ejecuciones de unos 4 minutos cada una.</div></li>
+      <li><div><b>Linter.</b>Quedan 19 avisos de estilo de ruff que ya existían. B008 es un falso positivo típico de FastAPI.</div></li>
+      <li><div><b>Makefile.</b>Usa sintaxis de shell POSIX. En Windows funciona con Git Bash, no con <code>cmd</code>.</div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="s-left">
+    <div class="section-head">
+      <span class="eyebrow">5 · Estado del equipo</span>
+      <h2 id="s-left">Lo que quedó en el equipo</h2>
+    </div>
+    <div class="leftovers">
+      <div><b>Creados</b><span><code>.venv/</code> y <code>.env</code> (copia de <code>.env.example</code>). Ambos están en <code>.gitignore</code>.</span></div>
+      <div><b>Generados al ejecutar</b><span><code>transform/models/_fuentes.yml</code> y <code>transform/target/</code>.</span></div>
+      <div><b>Docker</b><span>Imagen <code>plataforma-datos:local</code> y volumen <code>plataforma-datos_pgdata</code> con unos 100 000 registros reales. Los contenedores están detenidos.</span></div>
+    </div>
+    <p>Para borrar los datos cargados:</p>
+    <div class="cmd"><code id="cmd-down">docker compose down -v</code><button class="copy" type="button" id="copy-down" data-target="cmd-down">Copiar</button></div>
+  </section>
+
+  <footer>Revisión hecha el 28 de octubre de 2026 sobre <span class="mono">plataforma-datos 0.1.0</span>.</footer>
+</div>
+
+<script>
+document.querySelectorAll("button.copy").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    var el = document.getElementById(btn.dataset.target);
+    var done = function () { btn.textContent = "Copiado"; setTimeout(function () { btn.textContent = "Copiar"; }, 1600); };
+    var fallback = function () {
+      var r = document.createRange(); r.selectNodeContents(el);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      btn.textContent = "Seleccionado";
+    };
+    try {
+      navigator.clipboard.writeText(el.textContent).then(done, fallback);
+    } catch (e) { fallback(); }
+  });
+});
+</script>

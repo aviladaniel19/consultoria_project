@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import capa_chip %}
+{% block titulo %}Explorar {{ f.titulo }}{% endblock %}
+{% block contenido %}
+<section class="explorar-top">
+  <div class="selector-dataset">
+    <label for="dataset" class="tenue">Conjunto de datos</label>
+    <select id="dataset" data-navegar>
+      {% for d in items %}
+      <option value="/explorar/{{ d.capa }}/{{ d.nombre }}" {% if d.capa == capa and d.nombre == nombre %}selected{% endif %}>{{ d.titulo }} ({{ d.capa }})</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="datos-clave">
+    {{ capa_chip(capa) }}
+    <span class="mono">{{ capa }}.{{ nombre }}</span>
+    <a class="btn chico" href="/datos/{{ capa }}/{{ nombre }}">Ver ficha y columnas</a>
+  </div>
+</section>
+
+<form id="form-filtros" class="filtros" action="/explorar/{{ capa }}/{{ nombre }}"
+      hx-get="/explorar/{{ capa }}/{{ nombre }}" hx-target="#resultado" hx-push-url="true">
+  <div class="filtros-top">
+    <h2>Filtros</h2>
+    <div class="botonera">
+      <button type="button" class="btn chico" data-agregar-filtro>+ Agregar filtro</button>
+      <button type="submit" class="btn chico primario">Aplicar</button>
+    </div>
+  </div>
+  <div id="lista-filtros" class="encabezado">
+    {% for fila in filtros %}{% include "_fila_filtro.html" %}{% endfor %}
+  </div>
+  <p class="sin-filtros" {% if filtros %}hidden{% endif %}>Sin filtros: se muestran todas las filas.
+    Agrega uno para acotar, por ejemplo <i>departamento es igual a Antioquia</i>.</p>
+</form>
+<template id="plantilla-filtro">{% set fila = none %}{% include "_fila_filtro.html" %}</template>
+
+<section id="resultado" class="encabezado" aria-live="polite">
+{% include "_resultado.html" %}
+</section>
+{% endblock %}

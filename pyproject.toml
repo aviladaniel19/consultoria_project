@@ -1,0 +1,52 @@
+[project]
+name = "plataforma-datos"
+version = "0.1.0"
+description = "Plataforma de datos de uso general: registro declarativo de fuentes, capas origen/estandarizado/analítico en PostgreSQL y API de servicio."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "httpx>=0.27",
+    "pandas>=2.2",
+    "pyarrow>=16",
+    "openpyxl>=3.1",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+    "jinja2>=3.1",              # plantillas del frontend
+    "python-multipart>=0.0.9",  # formulario de ingreso del frontend
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "respx>=0.21", "ruff>=0.5", "mcp>=2.3,<3"]
+# servidor MCP para asistentes de IA (se instala en el equipo donde corre el asistente)
+mcp = ["mcp>=2.3,<3"]
+# dbt-core acotado: sin el tope pip llegó a resolver una beta (1.13.0b1)
+transform = ["dbt-postgres>=1.8", "dbt-core>=1.8,<1.13"]
+
+[project.scripts]
+plataforma = "plataforma.cli:app"
+plataforma-mcp = "plataforma.mcp_server:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"plataforma.storage" = ["ddl.sql"]
+"plataforma.web" = ["templates/*.html", "static/css/*", "static/js/*", "static/vendor/*", "static/fuentes/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"

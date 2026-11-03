@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono %}
+{% from "_macros.html" import estado, capa_chip, nombre_capa %}
+{% block titulo %}{{ f.titulo }}{% endblock %}
+{% block contenido %}
+<nav class="miga" aria-label="Ruta">
+  <a href="/">Catálogo</a><span aria-hidden="true">›</span>
+  <span>{{ nombre_capa(f.capa) }}</span><span aria-hidden="true">›</span>
+  <span>{{ f.titulo }}</span>
+</nav>
+
+<section class="cabecera-ficha">
+  <div>
+    <h1>{{ f.titulo }}</h1>
+    {% if f.descripcion %}<p class="lead">{{ f.descripcion }}</p>{% endif %}
+    <div class="datos-clave">
+      {{ capa_chip(f.capa) }}
+      <span class="num"><b>{{ f.filas | num }}</b> {{ "fila" if f.filas == 1 else "filas" }}</span>
+      <span><b>{{ f.columnas | length }}</b> columnas</span>
+      {% if f.construida_en %}<span>Actualizado <b>{{ f.construida_en | fecha }}</b></span>{% endif %}
+      {% if f.fuente %}{{ estado(f.fuente.ultimo_estado) }}{% endif %}
+      <span class="mono">{{ f.capa }}.{{ f.nombre }}</span>
+    </div>
+  </div>
+  <div class="botonera">
+    <a class="btn primario" href="/explorar/{{ f.capa }}/{{ f.nombre }}">{{ icono("filtro") }}Explorar y filtrar</a>
+    <details class="menu-descarga">
+      <summary class="btn">{{ icono("descargar") }}Descargar</summary>
+      <div class="opciones">
+        <a href="/explorar/{{ f.capa }}/{{ f.nombre }}/csv" download>CSV
+          <small>Para R, Python u otros programas (separado por comas)</small></a>
+        <a href="/explorar/{{ f.capa }}/{{ f.nombre }}/csv?sep=%3B" download>CSV para Excel
+          <small>Separado por punto y coma, con decimales en coma</small></a>
+      </div>
+    </details>
+  </div>
+</section>
+
+<section>
+  <div class="pestanas" role="tablist" aria-label="Información del dataset">
+    {% for clave, etiqueta in pestanas.items() %}
+    <button role="tab" type="button" id="tab-{{ clave }}" data-pestana="{{ clave }}" aria-controls="panel"
+            aria-selected="{{ 'true' if clave == pestana else 'false' }}"
+            hx-get="/datos/{{ f.capa }}/{{ f.nombre }}/{{ clave }}" hx-target="#panel-contenido" hx-indicator="#panel">{{ etiqueta }}</button>
+    {% endfor %}
+  </div>
+  <div id="panel" class="panel" role="tabpanel">
+    <div class="cargando"><span class="punto"></span>Cargando…</div>
+    <div id="panel-contenido" class="panel-contenido">
+      {% include "_pestana_vista.html" %}
+    </div>
+  </div>
+</section>
+{% endblock %}

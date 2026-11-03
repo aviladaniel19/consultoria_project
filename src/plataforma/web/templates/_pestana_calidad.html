@@ -1,0 +1,59 @@
+{% from "_macros.html" import estado %}
+<div class="panel-in">
+<div class="dos-columnas">
+  <section class="encabezado">
+    <h3>Últimas cargas de la fuente <span class="mono">{{ f.fuente.name }}</span></h3>
+    {% if cargas %}
+    {% set maxr = (cargas | map(attribute="records_loaded") | max) or 1 %}
+    <div class="tira" role="img" aria-label="Historial de las últimas {{ cargas | length }} cargas; color según el estado">
+      {% for c in cargas %}{% set e = ESTADOS.get(c.status) or ESTADOS.get(none) %}
+      <i class="{{ e[0] }}" style="height: {{ 30 + 70 * (c.records_loaded / maxr) }}%" title="{{ c.started_at | fecha }} · {{ e[2] }} · {{ c.records_loaded | num }} registros"></i>
+      {% endfor %}
+    </div>
+    <div class="tira-pie"><span>{{ cargas[0].started_at | fecha(false) }}</span><span>{{ cargas[-1].started_at | fecha(false) }}</span></div>
+    <div class="tabla-scroll">
+      <table>
+        <thead><tr><th scope="col">Inicio</th><th scope="col">Estado</th><th scope="col">Extraídos</th><th scope="col">Cargados</th></tr></thead>
+        <tbody>
+          {% for c in cargas | reverse %}{% if loop.index <= 8 %}
+          <tr>
+            <td>{{ c.started_at | fecha }}</td>
+            <td>{{ estado(c.status) }}{% if c.error %}<div class="tenue" style="white-space: normal; max-width: 280px; font-size: 0.8rem">{{ c.error[:160] }}</div>{% endif %}</td>
+            <td class="n">{{ c.records_extracted | num }}</td>
+            <td class="n">{{ c.records_loaded | num }}</td>
+          </tr>
+          {% endif %}{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="tenue">Esta fuente todavía no tiene cargas.</p>
+    {% endif %}
+  </section>
+
+  <section class="encabezado">
+    <h3>Reglas de calidad en la última carga</h3>
+    {% if reglas %}
+    <div class="tabla-scroll">
+      <table>
+        <thead><tr><th scope="col">Columna</th><th scope="col">Regla</th><th scope="col">No cumplen</th><th scope="col">Tolerancia</th><th scope="col">Resultado</th></tr></thead>
+        <tbody>
+          {% for r in reglas %}
+          <tr>
+            <td class="mono">{{ r.column_name }}</td>
+            <td>{{ REGLAS.get(r.rule, r.rule) }}<div class="tenue" style="font-size: 0.78rem">{{ "obligatoria" if r.severity == "error" else "advertencia" }}</div></td>
+            <td class="n">{{ r.failed | num }}<div class="tenue" style="font-size: 0.78rem">{{ r.failure_rate | pct(2) }}</div></td>
+            <td class="n">{{ r.threshold | pct(2) }}</td>
+            <td>{% if r.passed %}<span class="chip ok"><span aria-hidden="true">✓</span>Cumple</span>{% else %}<span class="chip {{ 'error' if r.severity == 'error' else 'aviso' }}"><span aria-hidden="true">✕</span>No cumple</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="tenue" style="font-size: 0.85rem">Una regla obligatoria incumplida deja la carga en cuarentena: sus datos no llegan a este dataset hasta que se corrija.</p>
+    {% else %}
+    <p class="tenue">Esta fuente no tiene reglas de calidad definidas en su contrato.</p>
+    {% endif %}
+  </section>
+</div>
+</div>

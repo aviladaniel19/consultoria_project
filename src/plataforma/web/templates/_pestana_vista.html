@@ -1,0 +1,5 @@
+<div class="panel-in">
+  <p class="tenue">Primeras {{ tabla.data | length }} de <span class="num">{{ tabla.total | num }}</span> filas.
+    <a href="/explorar/{{ f.capa }}/{{ f.nombre }}">Ver todas y filtrar</a></p>
+  {% include "_tabla_datos.html" %}
+</div>

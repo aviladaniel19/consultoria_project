@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}Ingresar{% endblock %}
+{% block contenido %}
+<div class="caja-centro">
+  <h1>Ingresar</h1>
+  <p class="tenue">Escribe la clave de acceso que te entregó el administrador de la plataforma.</p>
+  {% if error %}<div class="alerta" role="alert">La clave no es válida. Revisa que esté completa, sin espacios.</div>{% endif %}
+  <form method="post" action="/ingresar">
+    <input type="hidden" name="siguiente" value="{{ siguiente }}">
+    <label>Clave de acceso
+      <input class="campo-grande" type="password" name="clave" required autocomplete="current-password" autofocus>
+    </label>
+    <button class="btn primario" type="submit">Ingresar</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block titulo %}Catálogo{% endblock %}
+{% block contenido %}
+<section class="portada">
+  <div class="encabezado">
+    <h1>Datos listos para la clase <span>y la investigación</span></h1>
+    <p class="lead">Conjuntos de datos públicos depurados, versionados y con control de calidad.
+      Explóralos en línea, descárgalos o úsalos directamente desde R y Python.</p>
+  </div>
+  <form class="filtro-catalogo" role="search" action="/" hx-get="/" hx-target="#tarjetas"
+        hx-trigger="input changed delay:250ms from:#q, submit" hx-push-url="true">
+    <label for="q" class="solo-lector">Filtrar el catálogo</label>
+    <input id="q" class="campo-grande" type="search" name="q" value="{{ q }}" autocomplete="off"
+           placeholder="Filtra por tema o columna: precio, departamento…">
+    {% if etiqueta %}<input type="hidden" name="etiqueta" value="{{ etiqueta }}">{% endif %}
+    {% if etiquetas %}
+    <div class="temas" aria-label="Temas">
+      <a class="tema" href="/" aria-pressed="{{ 'false' if etiqueta else 'true' }}">Todos</a>
+      {% for e in etiquetas %}
+      <a class="tema" href="/?etiqueta={{ e | urlencode }}" aria-pressed="{{ 'true' if e == etiqueta else 'false' }}">{{ e | replace("-", " ") }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </form>
+</section>
+<section id="tarjetas" aria-live="polite">
+{% include "_tarjetas.html" %}
+</section>
+{% endblock %}

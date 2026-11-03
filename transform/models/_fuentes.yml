@@ -1,0 +1,44 @@
+version: 2
+sources:
+- name: origen
+  schema: origen
+  description: Generado por `plataforma dbt-sources`. No editar a mano.
+  tables:
+  - name: ejemplo_archivo
+    description: Serie descargada manualmente y dejada en la zona de aterrizaje
+    meta:
+      tipo: file
+      llave:
+      - fecha
+      tags:
+      - ejemplo
+      - archivo
+      incremental: fecha
+    columns:
+    - name: _record
+      description: Registro crudo (jsonb)
+  - name: secop_procesos
+    description: Procesos de contratación pública publicados en SECOP II
+    meta:
+      tipo: rest
+      llave:
+      - id_del_proceso
+      tags:
+      - contratacion
+      - colombia
+      - datos-abiertos
+      - socrata
+      incremental: fecha_de_publicacion_del
+    columns:
+    - name: _record
+      description: Registro crudo (jsonb)
+- name: meta
+  schema: meta
+  description: Catálogo de la plataforma
+  tables:
+  - name: sources
+  - name: runs
+  - name: state
+  - name: schema_versions
+  - name: column_profiles
+  - name: quality_results

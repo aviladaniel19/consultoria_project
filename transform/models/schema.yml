@@ -1,0 +1,65 @@
+version: 2
+
+# Convención: la primera línea de cada descripción es el título que muestra el catálogo web;
+# el resto es la descripción.
+models:
+  - name: estandarizado_secop_procesos
+    description: |
+      Procesos de contratación SECOP II
+      Un registro por proceso de contratación pública publicado en SECOP II, deduplicado por id y con tipos corregidos. Excluye las cargas en cuarentena. Fuente: datos.gov.co.
+    columns:
+      - name: id_proceso
+        description: Identificador único del proceso en SECOP II.
+        data_tests: [not_null, unique]
+      - name: referencia
+        description: Referencia que la entidad asigna al proceso.
+      - name: entidad
+        description: Entidad pública que adelanta el proceso.
+      - name: nit_entidad
+        description: NIT de la entidad, sin dígito de verificación.
+      - name: departamento
+        description: Departamento de la entidad.
+      - name: ciudad
+        description: Ciudad de la entidad.
+      - name: modalidad
+        description: Modalidad de contratación (licitación, mínima cuantía, contratación directa…).
+      - name: estado
+        description: Estado del procedimiento en SECOP II.
+      - name: precio_base
+        description: Precio base del proceso en pesos colombianos; vacío si el valor de la fuente no era numérico.
+      - name: fecha_publicacion
+        description: Fecha de publicación del proceso.
+      - name: cargado_en
+        description: Momento en que la plataforma cargó la versión vigente del registro.
+      - name: run_id
+        description: Identificador de la carga que trajo el registro (trazabilidad).
+
+  - name: analitico_contratacion_mensual
+    description: |
+      Contratación mensual por departamento y modalidad
+      Número de procesos y precio base (total, mediana y media) por mes, departamento y modalidad de contratación. Se construye a partir de los procesos SECOP II.
+    columns:
+      - name: mes
+        description: Primer día del mes de publicación.
+      - name: departamento
+        description: Departamento de la entidad; "Sin dato" si no viene informado.
+      - name: modalidad
+        description: Modalidad de contratación; "Sin dato" si no viene informada.
+      - name: n_procesos
+        description: Número de procesos publicados.
+        data_tests: [not_null]
+      - name: precio_base_total
+        description: Suma del precio base, en pesos.
+      - name: precio_base_mediana
+        description: Mediana del precio base, en pesos.
+      - name: precio_base_media
+        description: Media del precio base, en pesos.
+
+  - name: analitico_salud_fuentes
+    description: |
+      Salud de las fuentes de datos
+      Estado operativo de cada fuente registrada en la plataforma: última carga, tasa de éxito y reglas de calidad incumplidas en los últimos 30 días.
+    columns:
+      - name: fuente
+        description: Nombre de la fuente en el registro.
+        data_tests: [not_null, unique]

@@ -1,0 +1,75 @@
+# ============================================================================
+#  PLANTILLA DE FUENTE  —  copia este archivo como sources/<name>.yml
+#  Los archivos que empiezan por "_" no se cargan.
+#  Valida con:  plataforma validate
+# ============================================================================
+
+# --- Identidad (obligatorio) -------------------------------------------------
+name: mi_fuente                  # [a-z0-9_], igual al nombre del archivo; será la tabla origen.<name>
+description: Qué contiene y para qué sirve
+owner: daniel                    # opcional
+tags: [tema, pais]               # opcional, sirve para buscar en el catálogo
+enabled: true                    # false = se valida pero no se ejecuta
+schedule: "0 6 * * *"            # opcional, informativo para el orquestador
+
+# --- Tipo de fuente (obligatorio): rest | file --------------------------------
+type: rest
+
+# --- Conexión REST ------------------------------------------------------------
+connection:
+  base_url: https://api.ejemplo.com/v1/recurso
+  method: GET                    # GET | POST
+  auth:                          # una de las cuatro formas:
+    type: none                   #   none
+    # type: header               #   header  -> header: X-Api-Key, value: ${MI_TOKEN}
+    # type: bearer               #   bearer  -> token: ${MI_TOKEN}
+    # type: query                #   query   -> param: api_key, value: ${MI_TOKEN}
+  params: {}                     # parámetros fijos de cada petición
+  headers: {}
+  records_path: data.items       # dónde está la lista de registros; omitir si la respuesta ya es lista
+  timeout_s: 60
+  max_retries: 3                 # reintentos con espera exponencial ante 429/5xx
+
+# --- Conexión FILE (si type: file) --------------------------------------------
+# connection:
+#   path: data/landing/archivo.csv   # ruta local o URL http(s)
+#   format: csv                      # csv | parquet | json | xlsx
+#   options: {sep: ";", encoding: latin-1}   # kwargs de pandas.read_*
+
+# --- Paginación (solo REST) ---------------------------------------------------
+pagination:
+  type: none                     # none | offset | page | cursor
+  # offset -> limit_param, offset_param, page_size
+  # page   -> page_param, size_param, page_size, first_page
+  # cursor -> cursor_param, next_cursor_path
+
+max_records: 100000              # opcional, tope de registros por ejecución
+
+# --- Carga incremental (opcional) ---------------------------------------------
+# Sin este bloque cada ejecución trae todo (snapshot completo).
+incremental:
+  cursor_field: updated_at       # campo creciente: fecha o id
+  initial_value: "2026-01-01"    # valor de arranque la primera vez
+  filter:                        # opcional: empuja el filtro a la API
+    param: since
+    template: "{value}"          # {field} y {value} se reemplazan
+
+# --- Llave natural (opcional, recomendada) ------------------------------------
+primary_key: [id]                # dbt la usa para deduplicar en la capa estandarizada
+
+# --- Contrato de datos (opcional) ---------------------------------------------
+contract:
+  required_columns: [id]         # si faltan, la carga falla
+  on_schema_change: record       # record = versiona el esquema y sigue | fail = detiene
+  checks:
+    - column: id
+      rule: not_null             # not_null | unique | non_negative | range | in_set | regex
+      severity: error            # error = la ejecución queda en estado 'failed_quality'
+    - column: valor
+      rule: range
+      min: 0
+      max: 1.0e12
+      max_failure_rate: 0.01     # tolera hasta 1 % de filas que no cumplen
+    - column: estado
+      rule: in_set
+      values: [activo, inactivo]

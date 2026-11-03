@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+data/landing/*
+!data/landing/.gitkeep
+transform/target/
+transform/logs/
+transform/dbt_packages/
+transform/.user.yml

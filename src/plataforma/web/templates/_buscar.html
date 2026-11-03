@@ -1,0 +1,7 @@
+{% if q %}
+  {% for r in resultados %}
+  <a href="{{ r.url }}"><span class="tipo">{{ r.tipo }}</span><span>{{ r.texto }}</span><span class="det">{{ r.detalle }}</span></a>
+  {% else %}
+  <div class="vacio">Sin resultados para «{{ q }}».</div>
+  {% endfor %}
+{% endif %}

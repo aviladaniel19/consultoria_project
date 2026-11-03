@@ -1,0 +1,603 @@
+<meta charset="utf-8">
+<title>Objetivos de plataforma-datos y estado del arte</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: columna de lectura (~68ch) con un flujo de etapas a lo ancho; capas origen/estandarizado/analítico como hilo cromático (misma familia visual que el informe de revisión) */
+:root {
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --fg: #1b2229;
+  --muted: #5b6672;
+  --line: #dde2e7;
+  --accent: #1d5e78;
+  --accent-soft: #e3eef3;
+  --bronze: #a8642c;
+  --silver: #7d8a96;
+  --gold: #b38a14;
+  --ok: #2e7d4f;
+  --ok-soft: #e4f3ea;
+  --part: #8a6d00;
+  --part-soft: #fbf4dc;
+  --todo: #6b5b95;
+  --todo-soft: #eeeaf6;
+  --code-bg: #eef1f4;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171c; --surface: #1a2027; --fg: #e3e8ec; --muted: #9aa6b1; --line: #2c353e;
+    --accent: #6fb6d2; --accent-soft: #1b3440;
+    --bronze: #d38c52; --silver: #a9b4be; --gold: #dcb53e;
+    --ok: #74c597; --ok-soft: #1a3325; --part: #e0c661; --part-soft: #352f17;
+    --todo: #b3a4e0; --todo-soft: #2a2540; --code-bg: #232b33;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171c; --surface: #1a2027; --fg: #e3e8ec; --muted: #9aa6b1; --line: #2c353e;
+  --accent: #6fb6d2; --accent-soft: #1b3440;
+  --bronze: #d38c52; --silver: #a9b4be; --gold: #dcb53e;
+  --ok: #74c597; --ok-soft: #1a3325; --part: #e0c661; --part-soft: #352f17;
+  --todo: #b3a4e0; --todo-soft: #2a2540; --code-bg: #232b33;
+  color-scheme: dark;
+}
+
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.6; }
+.wrap {
+  max-width: 920px; margin: 0 auto;
+  padding-block: 40px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 52px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.75rem); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.6rem; font-weight: 600; }
+h3 { font-size: 1.15rem; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.section-head { display: flex; flex-direction: column; gap: 6px; border-top: 2px solid var(--fg); padding-top: 14px; }
+.lede { font-size: 1.08rem; }
+.muted { color: var(--muted); }
+
+header { display: flex; flex-direction: column; gap: 16px; }
+.layers { display: flex; gap: 6px; align-items: center; font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
+.layers span { display: inline-flex; align-items: center; gap: 6px; }
+.layers i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+/* Objetivo general */
+.general {
+  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+  border-radius: 6px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;
+}
+.general p { font-size: 1.05rem; }
+
+/* Objetivos específicos */
+.objectives { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 12px; }
+.obj {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+}
+.obj-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.obj-id { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent); font-weight: 500; }
+.obj p { font-size: 0.94rem; }
+.obj .how { font-size: 0.86rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; }
+.chip { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; font-weight: 500; white-space: nowrap; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.part { background: var(--part-soft); color: var(--part); }
+.chip.todo { background: var(--todo-soft); color: var(--todo); }
+.tally { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.9rem; color: var(--muted); align-items: center; }
+
+/* Flujo de etapas */
+.flow-scroll { overflow-x: auto; padding-bottom: 4px; }
+.flow { display: grid; grid-template-columns: repeat(7, minmax(118px, 1fr)); gap: 0; min-width: 840px; }
+.stage { position: relative; padding: 12px 14px 12px 12px; border-top: 4px solid var(--c, var(--accent)); background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.stage:first-child { border-left: 1px solid var(--line); border-radius: 6px 0 0 6px; }
+.stage:last-child { border-radius: 0 6px 6px 0; }
+.stage { border-bottom: 1px solid var(--line); }
+.stage b { font-family: var(--font-display); font-size: 1rem; }
+.stage .mono { color: var(--muted); font-size: 0.72rem; overflow-wrap: anywhere; }
+.stage .ref { font-size: 0.78rem; color: var(--muted); }
+.stage-n { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); }
+
+/* Estado del arte */
+.sota { display: flex; flex-direction: column; gap: 14px; }
+.topic {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0;
+}
+.topic-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.topic p { font-size: 0.95rem; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.tools span { font-family: var(--font-mono); font-size: 0.74rem; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; color: var(--fg); background: var(--bg); }
+.here {
+  font-size: 0.9rem; background: var(--accent-soft); border-radius: 4px; padding: 10px 12px;
+}
+.here b { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 2px; }
+
+/* Tabla comparativa */
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; min-width: 680px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-mono); font-weight: 500; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--code-bg); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+
+/* Brechas */
+ol.gaps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: g; }
+ol.gaps li {
+  counter-increment: g; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; gap: 12px; align-items: start;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px;
+}
+ol.gaps li::before { content: counter(g); font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; color: var(--accent); line-height: 1.3; }
+ol.gaps b { display: block; }
+ol.gaps .tag { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); white-space: nowrap; padding-top: 4px; }
+@media (max-width: 560px) {
+  ol.gaps li { grid-template-columns: 2rem minmax(0, 1fr); }
+  ol.gaps .tag { grid-column: 2; padding-top: 0; }
+}
+
+/* Utilidad y beneficiarios */
+.value {
+  background: var(--accent-soft); border-radius: 6px; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.value p { font-size: 1.05rem; }
+.who { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.who article {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0;
+}
+.who ul { margin: 0; padding-left: 1.1em; font-size: 0.92rem; display: flex; flex-direction: column; gap: 4px; }
+.who .role { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.uses { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); overflow: hidden; }
+.uses div { padding: 14px 16px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; min-width: 0; margin: 0 -1px -1px 0; }
+.uses b { font-family: var(--font-display); font-size: 1rem; }
+.phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.phase {
+  border-top: 4px solid var(--c, var(--accent)); background: var(--surface); border-radius: 0 0 6px 6px;
+  border-left: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0;
+}
+.phase .stage-n { font-size: 0.74rem; }
+.phase p { font-size: 0.92rem; }
+.phase .need { font-size: 0.85rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; }
+
+/* Aplicabilidad */
+.verdict {
+  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--ok);
+  border-radius: 6px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;
+}
+.verdict strong { color: var(--ok); }
+.fit { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.fit > div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fit ul { margin: 0; padding-left: 1.1em; font-size: 0.92rem; display: flex; flex-direction: column; gap: 6px; }
+
+.refs { columns: 2 280px; column-gap: 28px; margin: 0; padding-left: 1.1em; font-size: 0.88rem; }
+.refs li { break-inside: avoid; margin-bottom: 6px; }
+footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 4px; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Documento de proyecto · Facultad de Estadística, Universidad Santo Tomás · noviembre de 2026</div>
+    <h1>Objetivos de plataforma-datos y estado del arte</h1>
+    <div class="layers" aria-label="Capas de la plataforma">
+      <span><i style="background: var(--bronze)"></i>origen</span>→
+      <span><i style="background: var(--silver)"></i>estandarizado</span>→
+      <span><i style="background: var(--gold)"></i>analítico</span>
+      <span>· PostgreSQL 16 · dbt · FastAPI · fuente piloto: SECOP II</span>
+    </div>
+    <p class="lede">plataforma-datos es una plataforma para extraer, validar, versionar y servir datos públicos y propios.
+    Nace para la Facultad de Estadística de la Universidad Santo Tomás y está pensada para replicarse después en otras
+    facultades y entidades. Este documento explica a quién sirve, fija sus objetivos, mide su avance y la ubica frente
+    a las herramientas y prácticas de referencia.</p>
+  </header>
+
+  <section aria-labelledby="s-who">
+    <div class="section-head">
+      <span class="eyebrow">1 · Utilidad</span>
+      <h2 id="s-who">Para qué sirve y a quién beneficia</h2>
+    </div>
+
+    <div class="value">
+      <span class="eyebrow">El problema que resuelve</span>
+      <p>En una facultad es común que cada docente, estudiante o grupo de investigación descargue, limpie y documente
+      por su cuenta los mismos datos públicos, semestre tras semestre, y que cada uno termine con una versión distinta.
+      La plataforma hace ese trabajo una sola vez, de forma verificable, y deja los datos listos para que todos los usen:
+      con su historial, sus reglas de calidad y la fecha exacta de cada actualización.</p>
+    </div>
+
+    <div class="who">
+      <article>
+        <span class="role">Estudiantes</span>
+        <h3>Pregrado y posgrado</h3>
+        <ul>
+          <li>Trabajan con datos reales y ya depurados en cursos y trabajos de grado.</li>
+          <li>Aprenden el ciclo completo del dato: extracción, calidad, versiones y reproducibilidad.</li>
+          <li>Ganan una competencia que piden hoy los empleadores en analítica y ciencia de datos.</li>
+        </ul>
+      </article>
+      <article>
+        <span class="role">Docentes</span>
+        <h3>Cursos y evaluaciones</h3>
+        <ul>
+          <li>Disponen de conjuntos de datos comunes, estables y documentados para clases y talleres.</li>
+          <li>Todo el grupo trabaja sobre el mismo dato, lo que facilita calificar y comparar resultados.</li>
+          <li>Dejan de preparar datos desde cero cada semestre.</li>
+        </ul>
+      </article>
+      <article>
+        <span class="role">Investigación</span>
+        <h3>Grupos y semilleros</h3>
+        <ul>
+          <li>Cuentan con series históricas versionadas: cada resultado se puede rastrear hasta la carga que lo produjo.</li>
+          <li>Publican análisis reproducibles, con trazabilidad de la fuente y de su calidad.</li>
+          <li>La propia plataforma es objeto de estudio: la detección de derivas y el control de calidad son estadística aplicada.</li>
+        </ul>
+      </article>
+      <article>
+        <span class="role">Institución</span>
+        <h3>Facultad y universidad</h3>
+        <ul>
+          <li>Base para un observatorio de datos públicos y para proyectos de extensión y consultoría.</li>
+          <li>Infraestructura propia con software libre: sin costos de licencia.</li>
+          <li>Un activo replicable que otras facultades pueden adoptar sin empezar de cero.</li>
+        </ul>
+      </article>
+    </div>
+
+    <h3>Usos concretos en la Facultad de Estadística</h3>
+    <div class="uses">
+      <div><b>Muestreo e inferencia</b>Los 1,56 millones de procesos de SECOP de 2026 sirven como población real para diseñar y evaluar muestras.</div>
+      <div><b>Series de tiempo</b>La tabla <code>analitico.contratacion_mensual</code> y series como las del Banco de la República, actualizadas solas.</div>
+      <div><b>Control estadístico de calidad</b>Los perfiles por columna de cada carga permiten construir gráficos de control reales.</div>
+      <div><b>Estadística computacional</b>Los estudiantes pueden aportar módulos: PSI, Kolmogorov-Smirnov, imputación o detección de atípicos.</div>
+    </div>
+
+    <h3>Ruta de réplica</h3>
+    <div class="phases">
+      <article class="phase">
+        <span class="stage-n">Fase 1</span>
+        <h3>Piloto en la Facultad de Estadística</h3>
+        <p>Una instancia en un servidor de la facultad con fuentes abiertas: SECOP, datos.gov.co, DANE y Banco de la República. Uso en uno o dos cursos y en un semillero.</p>
+        <p class="need">Requiere: cargas automáticas, acceso desde R, usuarios de solo lectura y una guía para docentes.</p>
+      </article>
+      <article class="phase" style="--c: var(--silver)">
+        <span class="stage-n">Fase 2</span>
+        <h3>Otras facultades de la universidad</h3>
+        <p>Economía, Ingeniería, Derecho o Sociología agregan sus propias fuentes con un YAML. Cada fuente queda marcada con su facultad (<code>owner</code> y <code>tags</code>), en una instancia compartida o en una por facultad.</p>
+        <p class="need">Requiere: permisos por facultad y un catálogo navegable para no técnicos.</p>
+      </article>
+      <article class="phase" style="--c: var(--gold)">
+        <span class="stage-n">Fase 3</span>
+        <h3>Otras universidades y entidades</h3>
+        <p>Alcaldías, veedurías ciudadanas, ONG o medios de periodismo de datos instalan su propia copia. SECOP, por ejemplo, sirve al control social de la contratación pública.</p>
+        <p class="need">Requiere: licencia abierta, guía de instalación y una versión estable publicada.</p>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-obj">
+    <div class="section-head">
+      <span class="eyebrow">2 · Objetivos</span>
+      <h2 id="s-obj">Qué busca el proyecto</h2>
+    </div>
+
+    <div class="general">
+      <span class="eyebrow">Objetivo general</span>
+      <p>Poner a disposición de la Facultad de Estadística de la Universidad Santo Tomás una plataforma de datos abierta y
+      replicable, que incorpore fuentes públicas y propias con solo un archivo de configuración y entregue datos validados,
+      versionados y documentados para la docencia, la investigación y la extensión. El diseño debe permitir que otras
+      facultades y entidades la adopten sin reescribirla. La primera fuente son los procesos de contratación pública de
+      SECOP II publicados en datos.gov.co.</p>
+    </div>
+
+    <div class="tally">
+      <span class="chip ok">Logrado</span> 5
+      <span class="chip part">Parcial</span> 3
+      <span class="chip todo">Pendiente</span> 1
+      <span>· estado según la revisión técnica de octubre de 2026</span>
+    </div>
+
+    <div class="objectives">
+      <article class="obj">
+        <div class="obj-top"><span class="obj-id">OE1 · Registro declarativo</span><span class="chip ok">Logrado</span></div>
+        <p>Incorporar una fuente nueva sin escribir código: un YAML por fuente, validado antes de ejecutar.</p>
+        <p class="how">Modelo pydantic estricto, nombre de archivo igual a la tabla, secretos por <code>${VARIABLE}</code>, comando <code>plataforma validate</code>.</p>
+      </article>
+      <article class="obj">
+        <div class="obj-top"><span class="obj-id">OE2 · Ingesta genérica e incremental</span><span class="chip ok">Logrado</span></div>
+        <p>Extraer de APIs REST y archivos con un solo motor, trayendo solo lo nuevo en cada ejecución.</p>
+        <p class="how">4 paginaciones, 4 tipos de autenticación, reintentos ante 429/5xx; CSV, Parquet, JSON y XLSX; cursor en <code>meta.state</code> con corte seguro por <code>max_records</code>.</p>
+      </article>
+      <article class="obj">
+        <div class="obj-top"><span class="obj-id">OE3 · Arquitectura por capas</span><span class="chip ok">Logrado</span></div>
+        <p>Separar dato crudo, dato limpio y dato listo para consumo.</p>
+        <p class="how">Origen en <code>jsonb</code> solo de agregado; estandarizado y analítico como modelos dbt con pruebas. Macro <code>origen_vigente()</code> deduplica por llave.</p>
+      </article>
+      <article class="obj">
+        <div class="obj-top"><span class="obj-id">OE4 · Calidad y contratos</span><span class="chip ok">Logrado</span></div>
+        <p>Detectar datos defectuosos en cada carga y evitar que lleguen a consumo.</p>
+        <p class="how">6 reglas (<code>not_null</code>, <code>unique</code>, <code>non_negative</code>, <code>range</code>, <code>in_set</code>, <code>regex</code>) con severidad y tolerancia; cuarentena para <code>failed_quality</code>.</p>
+      </article>
+      <article class="obj">
+        <div class="obj-top"><span class="obj-id">OE5 · Contexto acumulado</span><span class="chip part">Parcial</span></div>
+        <p>Que la plataforma sepa qué tiene: esquemas, perfiles e historial de cada fuente.</p>
+        <p class="how">Hecho: esquemas versionados, perfiles por columna, ejecuciones y resultados de calidad en <code>meta.*</code>. Falta: detección de derivas y linaje.</p>
+      </article>
+      <article class="obj">
+        <div class="obj-top"><span class="obj-id">OE6 · Servicio por API</span><span class="chip part">Parcial</span></div>
+        <p>Exponer catálogo y datasets sin escribir un endpoint por fuente.</p>
+        <p class="how">Hecho: FastAPI genérica que descubre fuentes y tablas, con paginación y orden validado. Falta: autenticación, límites de uso y CORS.</p>
+      </article>
+      <article class="obj">
+        <div class="obj-top"><span class="obj-id">OE7 · Reproducibilidad</span><span class="chip ok">Logrado</span></div>
+        <p>Levantar y probar todo el sistema con pocos comandos.</p>
+        <p class="how">Docker Compose (db, api, cli, dbt), pruebas unitarias y de integración contra PostgreSQL real: 25/25 pasan.</p>
+      </article>
+      <article class="obj">
+        <div class="obj-top"><span class="obj-id">OE8 · Evolución sin reescritura</span><span class="chip todo">Pendiente</span></div>
+        <p>Crecer hacia orquestación y almacenamiento abierto sin tocar el registro, la ingesta ni la API.</p>
+        <p class="how">Previsto: orquestador que lea <code>schedule</code>, tablero de <code>analitico.salud_fuentes</code> y migración a Parquet/Iceberg sobre almacenamiento de objetos (opción C).</p>
+      </article>
+      <article class="obj">
+        <div class="obj-top"><span class="obj-id">OE9 · Adopción y réplica institucional</span><span class="chip part">Parcial</span></div>
+        <p>Que docentes, estudiantes y otras facultades o entidades puedan usar y replicar la plataforma sin depender de quien la construyó.</p>
+        <p class="how">Hecho: despliegue con Docker, fuentes por YAML, campos <code>owner</code> y <code>tags</code>. Falta: acceso guiado desde R, usuarios y permisos, guía de uso, licencia abierta y un responsable de mantenimiento.</p>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-flow">
+    <div class="section-head">
+      <span class="eyebrow">3 · Arquitectura</span>
+      <h2 id="s-flow">El recorrido de un dato</h2>
+    </div>
+    <p>Cada etapa corresponde a un módulo del repositorio. Debajo de cada una aparece la categoría de herramientas con la que se compara en la sección siguiente.</p>
+    <div class="flow-scroll">
+      <div class="flow" role="list">
+        <div class="stage" role="listitem"><span class="stage-n">1</span><b>Registro</b><span class="mono">sources/*.yml</span><span class="ref">Contratos de datos</span></div>
+        <div class="stage" role="listitem"><span class="stage-n">2</span><b>Ingesta</b><span class="mono">ingestion/</span><span class="ref">Conectores ELT</span></div>
+        <div class="stage" role="listitem" style="--c: var(--bronze)"><span class="stage-n">3</span><b>Origen</b><span class="mono">origen.&lt;fuente&gt;</span><span class="ref">Almacenamiento</span></div>
+        <div class="stage" role="listitem"><span class="stage-n">4</span><b>Calidad</b><span class="mono">quality/</span><span class="ref">Calidad y observabilidad</span></div>
+        <div class="stage" role="listitem" style="--c: var(--silver)"><span class="stage-n">5</span><b>Estandarizado y analítico</b><span class="mono">transform/ (dbt)</span><span class="ref">Transformación</span></div>
+        <div class="stage" role="listitem" style="--c: var(--gold)"><span class="stage-n">6</span><b>Catálogo</b><span class="mono">meta.*</span><span class="ref">Metadatos y linaje</span></div>
+        <div class="stage" role="listitem"><span class="stage-n">7</span><b>API</b><span class="mono">api/main.py</span><span class="ref">Servicio de datos</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-sota">
+    <div class="section-head">
+      <span class="eyebrow">4 · Estado del arte</span>
+      <h2 id="s-sota">Prácticas y herramientas de referencia</h2>
+    </div>
+    <p>La ingeniería de datos pasó del ETL a medida al llamado <em>modern data stack</em>: herramientas especializadas por etapa,
+    transformación en SQL dentro del almacén (ELT) y una capa creciente de metadatos, calidad y contratos.
+    Estas son las referencias por componente y cómo se sitúa el proyecto frente a cada una.</p>
+
+    <div class="sota">
+
+      <article class="topic">
+        <div class="topic-head"><h3>Arquitectura: del almacén al lakehouse</h3><span class="eyebrow">Etapas 3 y 5</span></div>
+        <p>El almacén de datos clásico (Inmon, Kimball) dio paso a los lagos de datos y luego al <em>lakehouse</em>,
+        que combina archivos abiertos con garantías transaccionales (Armbrust et al., CIDR 2021). La arquitectura
+        <em>medallion</em>, difundida por Databricks, organiza los datos en bronce (crudo), plata (limpio) y oro (para consumo)
+        y hoy es un patrón estándar. En este proyecto esas capas se llaman origen, estandarizado y analítico. En paralelo crece la corriente de usar PostgreSQL como base analítica con extensiones
+        como pg_duckdb, Citus o TimescaleDB.</p>
+        <div class="tools"><span>Medallion</span><span>Lakehouse</span><span>Kimball</span><span>PostgreSQL</span><span>pg_duckdb</span><span>Citus</span></div>
+        <div class="here"><b>En el proyecto</b>Aplica medallion completo sobre PostgreSQL. La capa de origen en <code>jsonb</code> tolera cambios de esquema sin migraciones. Es la opción de menor operación; el límite aparece con volúmenes de cientos de millones de filas.</div>
+      </article>
+
+      <article class="topic">
+        <div class="topic-head"><h3>Ingesta y conectores</h3><span class="eyebrow">Etapa 2</span></div>
+        <p>Dominan los conectores gestionados (Fivetran) y los de código abierto (Airbyte, Meltano sobre el protocolo Singer).
+        La biblioteca <strong>dlt</strong> de dltHub popularizó la ingesta declarativa en Python, con fuentes REST configurables,
+        inferencia y evolución de esquema. Para datos que cambian en origen se usa captura de cambios (CDC) con Debezium y Kafka.</p>
+        <div class="tools"><span>Airbyte</span><span>Fivetran</span><span>Meltano / Singer</span><span>dlt</span><span>Debezium</span><span>Kafka</span></div>
+        <div class="here"><b>En el proyecto</b>Su enfoque es el mismo que el de dlt: REST declarativo, incremental y esquema inferido, en una base pequeña y auditable. No tiene catálogo de conectores ni CDC; las actualizaciones en origen no se capturan.</div>
+      </article>
+
+      <article class="topic">
+        <div class="topic-head"><h3>Transformación</h3><span class="eyebrow">Etapa 5</span></div>
+        <p><strong>dbt</strong> es el estándar de facto para transformar en SQL con control de versiones, pruebas y documentación.
+        SQLMesh propone entornos virtuales y planes de cambio. El mercado se está consolidando: en 2025 Fivetran adquirió
+        Tobiko Data, creadora de SQLMesh, y anunció su fusión con dbt Labs.</p>
+        <div class="tools"><span>dbt</span><span>SQLMesh</span><span>dbt tests</span></div>
+        <div class="here"><b>En el proyecto</b>Usa dbt de forma convencional. Su aporte propio es <code>plataforma dbt-sources</code>, que genera las fuentes de dbt desde el registro, y la macro <code>origen_vigente()</code>, que excluye las cargas en cuarentena.</div>
+      </article>
+
+      <article class="topic">
+        <div class="topic-head"><h3>Calidad, contratos y observabilidad</h3><span class="eyebrow">Etapas 1 y 4</span></div>
+        <p>Las validaciones declarativas se hacen con Great Expectations, Soda, Pandera o Deequ. Los <strong>contratos de datos</strong>
+        formalizan el acuerdo entre productor y consumidor (Andrew Jones, 2023), y el proyecto Bitol de la Linux Foundation mantiene
+        el estándar abierto ODCS (Open Data Contract Standard). La observabilidad (Monte Carlo, Elementary, Evidently) vigila volumen,
+        frescura y derivas con métricas como PSI y la prueba de Kolmogorov-Smirnov.</p>
+        <div class="tools"><span>Great Expectations</span><span>Soda</span><span>Pandera</span><span>Deequ</span><span>ODCS</span><span>Elementary</span><span>Evidently</span></div>
+        <div class="here"><b>En el proyecto</b>El bloque <code>contract</code> del YAML ya es un contrato de datos con severidad, tolerancia y cuarentena. Los perfiles por columna en <code>meta.column_profiles</code> son la base para medir derivas, aunque todavía no se calculan.</div>
+      </article>
+
+      <article class="topic">
+        <div class="topic-head"><h3>Catálogo, metadatos y linaje</h3><span class="eyebrow">Etapa 6</span></div>
+        <p>DataHub, OpenMetadata y Amundsen son los catálogos abiertos más usados; Unity Catalog se publicó como código abierto en 2024.
+        Para el linaje entre trabajos y tablas, OpenLineage (LF AI &amp; Data) es el estándar de eventos, con Marquez como implementación de referencia.</p>
+        <div class="tools"><span>DataHub</span><span>OpenMetadata</span><span>Amundsen</span><span>Unity Catalog</span><span>OpenLineage</span></div>
+        <div class="here"><b>En el proyecto</b>El esquema <code>meta.*</code> es un catálogo operativo propio con historial por hash del YAML. No emite eventos de linaje ni se integra con un catálogo externo.</div>
+      </article>
+
+      <article class="topic">
+        <div class="topic-head"><h3>Orquestación</h3><span class="eyebrow">Transversal</span></div>
+        <p>Apache Airflow sigue siendo el más extendido; su versión 3 salió en 2025. Dagster modela la plataforma como activos de datos,
+        lo que encaja con un registro declarativo. Prefect y Kestra son alternativas más ligeras.</p>
+        <div class="tools"><span>Airflow</span><span>Dagster</span><span>Prefect</span><span>Kestra</span></div>
+        <div class="here"><b>En el proyecto</b>Cada YAML trae un <code>schedule</code> en formato cron, pero nada lo ejecuta todavía. Es la brecha operativa más visible.</div>
+      </article>
+
+      <article class="topic">
+        <div class="topic-head"><h3>Almacenamiento abierto</h3><span class="eyebrow">Etapa 3 · futuro</span></div>
+        <p>Parquet es el formato columnar de referencia. Apache Iceberg, Delta Lake y Hudi añaden transacciones y evolución de esquema
+        sobre almacenamiento de objetos compatible con S3. DuckDB permite analizar esos archivos en local sin servidor.</p>
+        <div class="tools"><span>Parquet</span><span>Iceberg</span><span>Delta Lake</span><span>Hudi</span><span>DuckDB</span><span>S3</span></div>
+        <div class="here"><b>En el proyecto</b>La opción C del README prevé migrar a Parquet/Iceberg. El diseño lo facilita: registro, ingesta y API no dependen de cómo se guarda la capa de origen.</div>
+      </article>
+
+      <article class="topic">
+        <div class="topic-head"><h3>Servicio de datos</h3><span class="eyebrow">Etapa 7</span></div>
+        <p>PostgREST y Hasura generan APIs directamente desde el esquema de la base. Las capas semánticas (Cube, dbt Semantic Layer)
+        exponen métricas con definición única para tableros y aplicaciones.</p>
+        <div class="tools"><span>PostgREST</span><span>Hasura</span><span>Cube</span><span>dbt Semantic Layer</span></div>
+        <div class="here"><b>En el proyecto</b>La API sigue la idea de PostgREST, pero limitada a las capas estandarizada y analítica y sumando el catálogo. Le faltan autenticación y una capa de métricas.</div>
+      </article>
+
+      <article class="topic">
+        <div class="topic-head"><h3>Contexto colombiano: datos abiertos y contratación</h3><span class="eyebrow">Fuente piloto</span></div>
+        <p>datos.gov.co corre sobre la plataforma Socrata y ofrece la API SODA, con filtros <code>$where</code>, orden <code>$order</code> y paginación
+        <code>$limit</code>/<code>$offset</code>. SECOP II, de Colombia Compra Eficiente, publica allí los procesos de contratación. A nivel internacional,
+        el Open Contracting Data Standard (OCDS) define cómo publicar contratación pública de forma comparable. El marco normativo incluye la Ley 1712
+        de 2014 (transparencia y acceso a la información), el CONPES 3920 de 2018 (política de explotación de datos) y la Ley 1581 de 2012
+        (protección de datos personales), relevante porque SECOP incluye proveedores que son personas naturales.</p>
+        <div class="tools"><span>Socrata SODA</span><span>SECOP II</span><span>OCDS</span><span>Ley 1712/2014</span><span>CONPES 3920</span><span>Ley 1581/2012</span></div>
+        <div class="here"><b>En el proyecto</b>La fuente SECOP usa SODA correctamente: filtro incremental en <code>$where</code> y orden estable con <code>:id</code>. Los modelos estandarizado y analítico no siguen OCDS, y el dataset tiene una fila por proceso y proveedor, lo que conviene modelar explícitamente.</div>
+      </article>
+
+      <article class="topic">
+        <div class="topic-head"><h3>Datos para docencia e investigación universitaria</h3><span class="eyebrow">Contexto académico</span></div>
+        <p>En el mundo académico la referencia son los principios <strong>FAIR</strong> (Wilkinson et al., 2016): los datos de investigación
+        deben poder encontrarse, ser accesibles, interoperables y reutilizables. Para publicarlos, las universidades usan repositorios como
+        Dataverse, Zenodo o CKAN, que también sostiene muchos portales de datos abiertos del mundo. En estadística, el análisis se hace sobre
+        todo en R y Python, que se conectan a PostgreSQL con paquetes como DBI y RPostgres o SQLAlchemy.</p>
+        <div class="tools"><span>FAIR</span><span>Dataverse</span><span>Zenodo</span><span>CKAN</span><span>R · DBI · RPostgres</span><span>Python · pandas</span></div>
+        <div class="here"><b>En el proyecto</b>Complementa a los repositorios en lugar de reemplazarlos: un repositorio guarda un dato publicado una vez, mientras que la plataforma mantiene datos vivos, actualizados y con control de calidad. Ya cumple buena parte de FAIR (accesible por API, esquemas y perfiles documentados), pero le falta una guía de acceso desde R y un catálogo navegable para encontrar los datos.</div>
+      </article>
+
+    </div>
+  </section>
+
+  <section aria-labelledby="s-cmp">
+    <div class="section-head">
+      <span class="eyebrow">5 · Comparativa</span>
+      <h2 id="s-cmp">Cobertura frente a una pila de referencia</h2>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Capacidad</th><th>plataforma-datos</th><th>Pila de referencia típica</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td>Alta de fuentes</td><td>YAML validado, sin código</td><td>dlt, Airbyte (UI o YAML)</td><td><span class="chip ok">Cubierto</span></td></tr>
+          <tr><td>Carga incremental</td><td>Cursor con corte seguro</td><td>Cursor, CDC con Debezium</td><td><span class="chip part">Sin CDC</span></td></tr>
+          <tr><td>Evolución de esquema</td><td>Versionado acumulativo en <code>meta.schema_versions</code></td><td>dlt, Iceberg</td><td><span class="chip ok">Cubierto</span></td></tr>
+          <tr><td>Transformación</td><td>dbt con fuentes generadas</td><td>dbt, SQLMesh</td><td><span class="chip ok">Cubierto</span></td></tr>
+          <tr><td>Contratos y calidad</td><td>6 reglas, severidad, cuarentena</td><td>ODCS, Soda, Great Expectations</td><td><span class="chip ok">Cubierto</span></td></tr>
+          <tr><td>Derivas estadísticas</td><td>Perfiles guardados, sin cálculo</td><td>Evidently, Elementary</td><td><span class="chip part">Parcial</span></td></tr>
+          <tr><td>Catálogo y linaje</td><td>Catálogo propio, sin linaje</td><td>DataHub, OpenMetadata, OpenLineage</td><td><span class="chip part">Parcial</span></td></tr>
+          <tr><td>Orquestación</td><td>Campo <code>schedule</code> informativo</td><td>Airflow, Dagster</td><td><span class="chip todo">Pendiente</span></td></tr>
+          <tr><td>Seguridad de la API</td><td>Sin autenticación</td><td>OAuth2/JWT, API keys, límites de uso</td><td><span class="chip todo">Pendiente</span></td></tr>
+          <tr><td>Almacenamiento abierto</td><td>PostgreSQL</td><td>Parquet + Iceberg en S3</td><td><span class="chip todo">Previsto</span></td></tr>
+          <tr><td>Acceso desde R</td><td>Conexión directa a PostgreSQL posible, sin guía</td><td>DBI/RPostgres, paquetes cliente</td><td><span class="chip part">Parcial</span></td></tr>
+          <tr><td>Usuarios y permisos</td><td>Un solo usuario de base de datos</td><td>Roles por grupo, solo lectura</td><td><span class="chip todo">Pendiente</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-fit">
+    <div class="section-head">
+      <span class="eyebrow">6 · Aplicabilidad</span>
+      <h2 id="s-fit">¿Es aplicable en la Facultad de Estadística?</h2>
+    </div>
+    <div class="verdict">
+      <p><strong>Sí, es aplicable.</strong> La base técnica ya funciona con datos reales y resuelve un problema típico de una facultad
+      de estadística: contar con datos confiables, actualizados y comunes para todos. Para un piloto con estudiantes y docentes faltan
+      piezas de uso y operación, no de arquitectura. Ninguna obliga a rehacer lo construido.</p>
+    </div>
+    <div class="fit">
+      <div>
+        <h3>Por qué encaja</h3>
+        <ul>
+          <li>Calidad, perfiles y derivas son temas de estadística: la plataforma sirve para enseñar, no solo para guardar datos.</li>
+          <li>Todo es software libre (PostgreSQL, Python, dbt): sin costos de licencia para la universidad.</li>
+          <li>Cada carga queda versionada: los análisis de clase y de investigación son reproducibles.</li>
+          <li>Agregar una fuente es escribir un YAML: un estudiante puede hacerlo como parte de un curso.</li>
+          <li>Se instala con Docker: replicarla en otra facultad o entidad es copiar y configurar.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Qué falta antes del piloto</h3>
+        <ul>
+          <li><b>Cargas automáticas</b>, para que los datos se actualicen sin intervención.</li>
+          <li><b>Acceso desde R</b> con una guía y ejemplos, ya que es la herramienta habitual en estadística.</li>
+          <li><b>Usuarios y permisos</b>: solo lectura para estudiantes y autenticación en la API.</li>
+          <li><b>Guía para docentes y estudiantes</b> y un catálogo que se pueda consultar sin saber programar.</li>
+          <li><b>Servidor institucional</b> acordado con el área de tecnología de la universidad.</li>
+          <li><b>Licencia abierta</b> y acuerdo de propiedad intelectual con la universidad, condición para replicar en otras entidades.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Riesgos a gestionar</h3>
+        <ul>
+          <li><b>Continuidad:</b> si el proyecto depende de una sola persona, se detiene cuando esa persona se va. Conviene vincularlo a un semillero o a un docente responsable.</li>
+          <li><b>Datos personales:</b> si se incorporan datos institucionales, como notas o admisiones, aplica la Ley 1581 de 2012. Hacen falta anonimización y control de acceso antes de cargarlos.</li>
+          <li><b>Curva de aprendizaje:</b> YAML y SQL son una barrera para usuarios no técnicos. La guía y el catálogo navegable la reducen.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-gap">
+    <div class="section-head">
+      <span class="eyebrow">7 · Hoja de ruta</span>
+      <h2 id="s-gap">Prioridades para el piloto y la réplica</h2>
+    </div>
+    <ol class="gaps">
+      <li><div><b>Cargas automáticas.</b>Generar con Dagster un activo por fuente a partir del registro y de su <code>schedule</code>. También vuelve automáticas las 31 cargas que faltan para ponerse al día con SECOP.</div><span class="tag">OE8 · Fase 1</span></li>
+      <li><div><b>Usuarios, permisos y autenticación.</b>Roles de PostgreSQL de solo lectura para estudiantes y docentes, y API keys o JWT en la API.</div><span class="tag">OE6 · Fase 1</span></li>
+      <li><div><b>Acceso desde R y Python.</b>Guía con ejemplos en DBI/RPostgres y pandas, y exportación de cualquier tabla a CSV o Parquet.</div><span class="tag">OE9 · Fase 1</span></li>
+      <li><div><b>Guía de uso y catálogo navegable.</b>Una página que liste fuentes, columnas, calidad y fecha de actualización, para consultar sin programar.</div><span class="tag">OE9 · Fase 1</span></li>
+      <li><div><b>Licencia y gobierno del proyecto.</b>Licencia abierta (por ejemplo Apache 2.0 o MIT), acuerdo con la universidad y un responsable de mantenimiento.</div><span class="tag">OE9 · Fase 2</span></li>
+      <li><div><b>Detección de derivas.</b>PSI, Kolmogorov-Smirnov y gráficos de control sobre <code>meta.column_profiles</code>. Es un buen proyecto para un semillero o un trabajo de grado.</div><span class="tag">OE5 · Fase 2</span></li>
+      <li><div><b>Conector a bases de datos y protección de datos personales.</b>Leer sistemas institucionales con anonimización de columnas sensibles, en cumplimiento de la Ley 1581.</div><span class="tag">OE2 · Fase 2</span></li>
+      <li><div><b>Capturar actualizaciones de SECOP.</b>Usar <code>fecha_de_ultima_publicaci</code> como cursor o recargar periódicamente las ventanas recientes.</div><span class="tag">OE2 · Fase 2</span></li>
+      <li><div><b>Estándares e interoperabilidad.</b>Contratos en ODCS, linaje con OpenLineage, modelo de contratación alineado con OCDS y migración a Parquet/Iceberg cuando el volumen lo pida.</div><span class="tag">OE3–OE8 · Fase 3</span></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="s-ref">
+    <div class="section-head">
+      <span class="eyebrow">8 · Referencias</span>
+      <h2 id="s-ref">Fuentes</h2>
+    </div>
+    <ul class="refs">
+      <li>Armbrust, Ghodsi, Xin, Zaharia. <em>Lakehouse: A New Generation of Open Platforms</em>. CIDR 2021.</li>
+      <li>Kimball, Ross. <em>The Data Warehouse Toolkit</em>, 3.ª ed. Wiley, 2013.</li>
+      <li>Jones, A. <em>Driving Data Quality with Data Contracts</em>. Packt, 2023.</li>
+      <li>Wilkinson, M. D. et al. <em>The FAIR Guiding Principles for scientific data management and stewardship</em>. Scientific Data 3, 160018 (2016).</li>
+      <li><a href="https://www.go-fair.org/fair-principles/" target="_blank" rel="noopener">GO FAIR: principios FAIR</a></li>
+      <li><a href="https://ckan.org" target="_blank" rel="noopener">CKAN</a> · <a href="https://dataverse.org" target="_blank" rel="noopener">Dataverse</a></li>
+      <li><a href="https://rpostgres.r-dbi.org" target="_blank" rel="noopener">RPostgres (DBI para R)</a></li>
+      <li><a href="https://www.databricks.com/glossary/medallion-architecture" target="_blank" rel="noopener">Databricks: arquitectura medallion</a></li>
+      <li><a href="https://dlthub.com/docs" target="_blank" rel="noopener">dlt: documentación</a></li>
+      <li><a href="https://docs.getdbt.com" target="_blank" rel="noopener">dbt: documentación</a></li>
+      <li><a href="https://bitol-io.github.io/open-data-contract-standard/" target="_blank" rel="noopener">Open Data Contract Standard (Bitol)</a></li>
+      <li><a href="https://openlineage.io" target="_blank" rel="noopener">OpenLineage</a></li>
+      <li><a href="https://iceberg.apache.org" target="_blank" rel="noopener">Apache Iceberg</a></li>
+      <li><a href="https://dev.socrata.com/docs/queries/" target="_blank" rel="noopener">Socrata: consultas SODA</a></li>
+      <li><a href="https://www.datos.gov.co/Gastos-Gubernamentales/SECOP-II-Procesos-de-Contrataci-n/p6dx-8zbt" target="_blank" rel="noopener">datos.gov.co: SECOP II Procesos (p6dx-8zbt)</a></li>
+      <li><a href="https://standard.open-contracting.org" target="_blank" rel="noopener">Open Contracting Data Standard</a></li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Objetivos derivados del README y del código de <span class="mono">plataforma-datos 0.1.0</span>; estado según la revisión técnica de octubre de 2026. Proyecto orientado inicialmente a la Facultad de Estadística de la Universidad Santo Tomás.</span>
+    <span>El panorama de herramientas refleja el mercado a 2026 y cambia rápido: conviene revisarlo antes de decidir una adopción.</span>
+  </footer>
+</div>

@@ -1,0 +1,73 @@
+{% from "_iconos.html" import icono %}<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block titulo %}{% endblock %} · plataforma-datos</title>
+<meta name="description" content="Datos públicos depurados y con control de calidad para la Facultad de Estadística de la Universidad Santo Tomás.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23E36415'/%3E%3Cpath d='M9 22V10h7a4 4 0 0 1 0 8H9' fill='none' stroke='%231C1714' stroke-width='3'/%3E%3C/svg%3E">
+<script>
+  // Tema antes de pintar, para evitar un destello: ?tema=oscuro|claro > elección guardada > sistema
+  (function () {
+    var t = null;
+    try {
+      var p = new URLSearchParams(location.search).get("tema");
+      if (p === "oscuro" || p === "claro") { t = p === "oscuro" ? "dark" : "light"; localStorage.setItem("tema", t); }
+      else { t = localStorage.getItem("tema"); }
+    } catch (e) {}
+    if (t !== "dark" && t !== "light") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", t);
+  })();
+</script>
+<link rel="stylesheet" href="/static/css/app.css">
+<script src="/static/vendor/htmx.min.js" defer></script>
+<script src="/static/js/app.js" defer></script>
+</head>
+<body>
+<a class="solo-lector" href="#contenido">Saltar al contenido</a>
+<header class="banda">
+  <div class="banda-in">
+    <a class="marca" href="/" aria-label="plataforma-datos, inicio">
+      <b>plataforma<span>·</span>datos</b>
+      <small>Facultad de Estadística · USTA</small>
+    </a>
+    <nav class="secciones" aria-label="Secciones">
+      <a href="/" {% if seccion == "catalogo" %}aria-current="page"{% endif %}>{{ icono("catalogo") }}Catálogo</a>
+      <a href="/explorar" {% if seccion == "explorar" %}aria-current="page"{% endif %}>{{ icono("explorar") }}Explorar</a>
+      <a href="/salud" {% if seccion == "salud" %}aria-current="page"{% endif %}>{{ icono("salud") }}Salud</a>
+    </nav>
+    <div class="buscador" role="search">
+      {{ icono("buscar") }}
+      <label for="buscador" class="solo-lector">Buscar datasets, columnas o fuentes</label>
+      <input id="buscador" type="search" name="q" placeholder="Buscar datos, columnas, fuentes…" autocomplete="off"
+             hx-get="/buscar" hx-trigger="input changed delay:250ms, search" hx-target="#resultados">
+      <kbd>Ctrl K</kbd>
+      <div id="resultados" class="resultados" aria-live="polite"></div>
+    </div>
+    <div class="acciones-banda">
+      <button class="icono-btn" type="button" data-cambiar-tema aria-label="Cambiar entre tema claro y oscuro" title="Tema claro u oscuro">
+        {{ icono("luna", "tema-claro") }}{{ icono("sol", "tema-oscuro") }}
+      </button>
+      {% if con_sesion %}
+      <a class="icono-btn" href="/salir" aria-label="Cerrar sesión" title="Cerrar sesión">{{ icono("salir") }}</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+<main id="contenido">
+{% block contenido %}{% endblock %}
+</main>
+
+<footer class="pie">
+  <span>plataforma-datos · Facultad de Estadística, Universidad Santo Tomás</span>
+  <span><a href="/docs">Documentación de la API</a> · Fuente de datos abiertos: datos.gov.co</span>
+</footer>
+
+<nav class="inferior" aria-label="Secciones">
+  <a href="/" {% if seccion == "catalogo" %}aria-current="page"{% endif %}>{{ icono("catalogo") }}Catálogo</a>
+  <a href="/explorar" {% if seccion == "explorar" %}aria-current="page"{% endif %}>{{ icono("explorar") }}Explorar</a>
+  <a href="/salud" {% if seccion == "salud" %}aria-current="page"{% endif %}>{{ icono("salud") }}Salud</a>
+</nav>
+</body>
+</html>

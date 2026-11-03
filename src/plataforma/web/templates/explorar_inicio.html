@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros.html" import capa_chip %}
+{% block titulo %}Explorar{% endblock %}
+{% block contenido %}
+<header class="encabezado">
+  <h1>Explorar</h1>
+  <p class="lead">Elige un conjunto de datos para filtrarlo, ordenarlo y descargar exactamente las filas que necesitas.</p>
+</header>
+{% if items %}
+<div class="lista-datasets">
+  {% for d in items %}
+  <a href="/explorar/{{ d.capa }}/{{ d.nombre }}">
+    <span><b>{{ d.titulo }}</b><br><span class="tenue mono">{{ d.capa }}.{{ d.nombre }}</span></span>
+    <span class="datos-clave">{{ capa_chip(d.capa) }}<span class="num"><b>{{ d.filas | num }}</b> {{ "fila" if d.filas == 1 else "filas" }}</span></span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="vacio-grande"><b>Todavía no hay datasets publicados.</b>
+  <span>Carga una fuente y construye las capas con dbt; aparecerán aquí automáticamente.</span></div>
+{% endif %}
+{% endblock %}

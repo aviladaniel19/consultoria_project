@@ -20,6 +20,13 @@
   </a>
   {% endfor %}
 </div>
+{% elif not q and not etiqueta %}
+<div class="vacio-grande">
+  <b>Todavía no hay datos publicados.</b>
+  <span>Sube un archivo (CSV, Excel, JSON o Parquet) o conecta una API: en unos segundos aparecerá aquí,
+    con su perfil estadístico, su historial y listo para descargar.</span>
+  {% if admin %}<a class="btn primario" href="/cargar">Cargar el primer dataset</a>{% endif %}
+</div>
 {% else %}
 <div class="vacio-grande">
   <b>No encontramos conjuntos de datos{% if q %} para «{{ q }}»{% endif %}.</b>

@@ -143,6 +143,7 @@ class Contract(_Strict):
 # -------------------------------------------------------------------------- fuente
 class SourceSpec(_Strict):
     name: str = Field(description="Identificador único: minúsculas, números y guion bajo")
+    title: str | None = Field(default=None, description="Título legible para el catálogo web")
     description: str
     owner: str | None = None
     tags: list[str] = Field(default_factory=list)

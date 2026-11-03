@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono %}
+{% block titulo %}Revisar {{ p.titulo }}{% endblock %}
+{% block contenido %}
+<nav class="miga" aria-label="Ruta"><a href="/cargar">Cargar datos</a><span aria-hidden="true">›</span><span>Revisar</span></nav>
+<header class="encabezado">
+  <h1>Revisa «{{ p.titulo }}» antes de publicar</h1>
+  <p class="lead">
+    {% if p.tipo == "file" %}Así se leyó el archivo <span class="mono">{{ p.archivo }}</span>.{% else %}Así respondió la API <span class="mono">{{ p.url }}</span> (primeros registros).{% endif %}
+    Comprueba que las columnas y los valores se vean bien.
+  </p>
+</header>
+
+{% if error %}<div class="alerta" role="alert">{{ error }}</div>{% endif %}
+
+{% if p.tipo == "file" and p.formato == "csv" %}
+<form class="opciones-lectura" method="get" action="/cargar/revisar/{{ p.nombre }}">
+  <label>Separador
+    <select name="sep">{% for v, t in separadores.items() %}<option value="{{ v }}" {% if p.opciones.sep == v %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+  </label>
+  <label>Decimales
+    <select name="decimal"><option value=".">con punto (3.5)</option><option value="," {% if p.opciones.decimal == ',' %}selected{% endif %}>con coma (3,5)</option></select>
+  </label>
+  <label>Codificación
+    <select name="encoding">{% for v, t in codificaciones.items() %}<option value="{{ v }}" {% if p.opciones.encoding == v %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+  </label>
+  <button class="btn chico" type="submit">Volver a leer</button>
+  <span class="tenue nota">Detectados automáticamente. Cámbialos si las columnas o las tildes se ven mal.</span>
+</form>
+{% elif p.tipo == "file" and p.formato == "xlsx" %}
+<form class="opciones-lectura" method="get" action="/cargar/revisar/{{ p.nombre }}">
+  <label>Hoja <input class="campo" name="hoja" value="{{ p.opciones.sheet_name if p.opciones.sheet_name is defined else 0 }}" placeholder="0 = la primera, o su nombre"></label>
+  <button class="btn chico" type="submit">Volver a leer</button>
+</form>
+{% endif %}
+
+{% if error_lectura %}
+<div class="alerta" role="alert"><b>No se pudo leer {{ "el archivo" if p.tipo == "file" else "la API" }}.</b><br>{{ error_lectura }}<br>
+  {% if p.tipo == "file" %}Prueba otro separador o codificación.{% else %}Revisa la dirección, la ruta de los registros y la autenticación.{% endif %}</div>
+<div class="botonera"><a class="btn" href="/cargar/cancelar/{{ p.nombre }}">Cancelar y empezar de nuevo</a></div>
+{% elif not muestra %}
+<div class="vacio-grande"><b>No llegaron registros.</b><span>Revisa la dirección o la ruta de los registros.</span>
+  <a class="btn chico" href="/cargar/cancelar/{{ p.nombre }}">Cancelar</a></div>
+{% else %}
+<section class="encabezado">
+  <h2>Vista previa</h2>
+  <div class="tabla-scroll">
+    <table>
+      <thead><tr>{% for c in columnas %}<th scope="col">{{ c.original }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for fila in muestra %}
+        <tr>{% for c in columnas %}{% set v = fila[c.original] %}<td class="{{ 'vacia' if v is none }}{{ ' largo' if v is string and v | length > 60 }}">{{ v | celda }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<form class="encabezado" method="post" action="/cargar/publicar/{{ p.nombre }}">
+  <h2>Columnas detectadas</h2>
+  <div class="tabla-scroll">
+    <table>
+      <thead><tr><th scope="col">Columna en la fuente</th><th scope="col">Tipo detectado</th><th scope="col">Nombre al publicar</th><th scope="col">Llave</th><th scope="col">Obligatoria</th></tr></thead>
+      <tbody>
+        {% for c in columnas %}
+        <tr>
+          <td class="mono">{{ c.original }}</td>
+          <td><span class="chip">{{ c.tipo }}</span></td>
+          <td class="mono">{{ c.publicada }}</td>
+          <td><input type="radio" name="llave" value="{{ c.original }}" aria-label="Usar {{ c.original }} como llave"></td>
+          <td><input type="checkbox" name="obligatorias" value="{{ c.original }}" aria-label="{{ c.original }} es obligatoria"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <label class="opcion-radio"><input type="radio" name="llave" value="" checked> Sin llave: cada carga reemplaza todos los datos</label>
+  <p class="tenue nota">La <b>llave</b> es la columna que identifica cada fila, como un código o un id. Con llave, una fila
+    que vuelve a llegar actualiza la anterior en lugar de duplicarse. Las columnas <b>obligatorias</b> generan una
+    advertencia de calidad cuando vienen vacías.</p>
+  {% if p.tipo == "rest" %}
+  <div class="fila-2 formulario">
+    <label>Campo incremental (opcional)
+      <select name="cursor"><option value="">Traer todo en cada carga</option>{% for c in columnas %}<option value="{{ c.original }}">{{ c.original }}</option>{% endfor %}</select>
+    </label>
+    <label>Desde el valor <input class="campo" name="valor_inicial" placeholder="Ej.: 2026-01-01"></label>
+  </div>
+  <p class="tenue nota">Con un campo incremental, como una fecha o un id creciente, cada actualización trae solo lo nuevo.</p>
+  {% endif %}
+  <div class="botonera">
+    <button class="btn primario" type="submit">Publicar dataset {{ icono("flecha") }}</button>
+    <a class="btn" href="/cargar/cancelar/{{ p.nombre }}">Cancelar</a>
+  </div>
+  <p class="tenue nota">Se guardará la configuración en <span class="mono">sources/{{ p.nombre }}.yml</span> y el dataset se
+    publicará como <span class="mono">estandarizado.{{ p.nombre }}</span>.</p>
+</form>
+{% endif %}
+{% endblock %}

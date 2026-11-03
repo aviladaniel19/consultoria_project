@@ -4,11 +4,17 @@
 # Antes de la primera carga revisa los nombres reales de los campos con:
 #   plataforma inspect secop_procesos
 # Socrata a veces trunca nombres largos (p. ej. "fecha_de_publicacion_del").
+#
+# Deshabilitada: es una fuente grande (más de 1,5 millones de registros en 2026) y
+# cada carga tarda minutos. Para usarla, cambia `enabled` a true y habilita sus dos
+# modelos dbt en transform/dbt_project.yml.
 
 name: secop_procesos
+title: Procesos de contratación SECOP II
 description: Procesos de contratación pública publicados en SECOP II
 owner: daniel
 tags: [contratacion, colombia, datos-abiertos, socrata]
+enabled: false
 type: rest
 schedule: "15 6 * * *"            # todos los días 06:15 (lo lee el orquestador)
 

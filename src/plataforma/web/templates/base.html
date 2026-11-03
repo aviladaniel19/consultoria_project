@@ -35,6 +35,7 @@
       <a href="/" {% if seccion == "catalogo" %}aria-current="page"{% endif %}>{{ icono("catalogo") }}Catálogo</a>
       <a href="/explorar" {% if seccion == "explorar" %}aria-current="page"{% endif %}>{{ icono("explorar") }}Explorar</a>
       <a href="/salud" {% if seccion == "salud" %}aria-current="page"{% endif %}>{{ icono("salud") }}Salud</a>
+      {% if admin %}<a href="/cargar" {% if seccion == "cargar" %}aria-current="page"{% endif %}>{{ icono("subir") }}Cargar datos</a>{% endif %}
     </nav>
     <div class="buscador" role="search">
       {{ icono("buscar") }}
@@ -61,13 +62,14 @@
 
 <footer class="pie">
   <span>plataforma-datos · Facultad de Estadística, Universidad Santo Tomás</span>
-  <span><a href="/docs">Documentación de la API</a> · Fuente de datos abiertos: datos.gov.co</span>
+  <span><a href="/docs">Documentación de la API</a> · Software libre</span>
 </footer>
 
 <nav class="inferior" aria-label="Secciones">
   <a href="/" {% if seccion == "catalogo" %}aria-current="page"{% endif %}>{{ icono("catalogo") }}Catálogo</a>
   <a href="/explorar" {% if seccion == "explorar" %}aria-current="page"{% endif %}>{{ icono("explorar") }}Explorar</a>
   <a href="/salud" {% if seccion == "salud" %}aria-current="page"{% endif %}>{{ icono("salud") }}Salud</a>
+  {% if admin %}<a href="/cargar" {% if seccion == "cargar" %}aria-current="page"{% endif %}>{{ icono("subir") }}Cargar</a>{% endif %}
 </nav>
 </body>
 </html>

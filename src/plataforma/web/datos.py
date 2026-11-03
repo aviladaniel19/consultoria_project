@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import Connection, text
 
 from .. import consultas
+from ..publicacion import METADATOS
 from ..storage.db import quote_ident
 
 NUMERICOS = {"smallint", "integer", "bigint", "numeric", "real", "double precision"}
@@ -132,6 +133,8 @@ def perfil_columnas(conn: Connection, capa: str, nombre: str) -> list[dict[str, 
     tabla = f"{quote_ident(capa)}.{quote_ident(nombre)}"
     perfiles = []
     for c in consultas.columnas(conn, capa, nombre):
+        if c["name"] in METADATOS:           # trazabilidad interna: está en la tabla, no aporta al perfil
+            continue
         col, tipo = quote_ident(c["name"]), c["type"]
         p: dict[str, Any] = {"nombre": c["name"], "tipo": tipo_legible(tipo), "descripcion": c["description"]}
         if tipo in NUMERICOS:

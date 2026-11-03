@@ -19,7 +19,7 @@ from fastapi.security import APIKeyHeader
 from sqlalchemy import Connection, text
 
 from .. import consultas
-from ..config import get_settings, split_csv
+from ..config import claves_acceso, get_settings, split_csv
 from ..storage.db import bootstrap, get_engine
 from ..web import instalar_frontend
 
@@ -30,7 +30,7 @@ Layer = Literal["estandarizado", "analitico"]
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     bootstrap(get_engine())
-    if not split_csv(get_settings().api_keys):
+    if not claves_acceso():
         log.warning("PLATAFORMA_API_KEYS está vacío: la API queda abierta. Úsalo solo en desarrollo local.")
     yield
 
@@ -50,8 +50,8 @@ _api_key = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 def require_key(key: str | None = Security(_api_key)) -> None:
-    """Exige una de las claves de PLATAFORMA_API_KEYS. Sin claves configuradas, no exige nada."""
-    keys = split_csv(get_settings().api_keys)
+    """Exige una clave de PLATAFORMA_API_KEYS o PLATAFORMA_ADMIN_KEYS. Sin claves, no exige nada."""
+    keys = claves_acceso()
     if not keys:
         return
     if not key or not any(secrets.compare_digest(key, k) for k in keys):

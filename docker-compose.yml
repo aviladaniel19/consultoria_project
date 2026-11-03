@@ -20,6 +20,8 @@ services:
     environment:
       PLATAFORMA_DATABASE_URL: postgresql+psycopg://plataforma:${POSTGRES_PASSWORD:-plataforma}@db:5432/plataforma
     ports: ["8000:8000"]
+    # La web escribe aquí las fuentes nuevas (sources/*.yml) y los archivos subidos (data/landing)
+    volumes: ["./sources:/app/sources", "./data:/app/data"]
     depends_on:
       db: {condition: service_healthy}
 

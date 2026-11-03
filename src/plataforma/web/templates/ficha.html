@@ -23,6 +23,11 @@
     </div>
   </div>
   <div class="botonera">
+    {% if admin and f.fuente %}
+    <form method="post" action="/fuentes/{{ f.fuente.name }}/actualizar">
+      <button class="btn" type="submit" title="Vuelve a leer la fuente y publica los cambios">{{ icono("actualizar") }}Actualizar datos</button>
+    </form>
+    {% endif %}
     <a class="btn primario" href="/explorar/{{ f.capa }}/{{ f.nombre }}">{{ icono("filtro") }}Explorar y filtrar</a>
     <details class="menu-descarga">
       <summary class="btn">{{ icono("descargar") }}Descargar</summary>

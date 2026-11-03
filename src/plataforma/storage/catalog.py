@@ -132,3 +132,11 @@ def insert_origen(conn: Connection, table: str, run_id: UUID, records: Sequence[
         chunk = records[i : i + batch_size]
         conn.execute(stmt, [{"run": run_id, "rec": json.dumps(r, ensure_ascii=False)} for r in chunk])
     return len(records)
+
+
+# ----------------------------------------------------------------- eliminación
+def eliminar_fuente(conn: Connection, source: str) -> None:
+    """Borra todo el rastro de una fuente en el catálogo (la tabla de origen la borra quien llama)."""
+    for tabla in ("quality_results", "column_profiles", "schema_versions", "state", "runs"):
+        conn.execute(text(f"DELETE FROM meta.{tabla} WHERE source_name = :s"), {"s": source})
+    conn.execute(text("DELETE FROM meta.sources WHERE name = :s"), {"s": source})

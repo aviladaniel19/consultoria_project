@@ -11,8 +11,14 @@ class Settings(BaseSettings):
     sources_dir: Path = Path("sources")
     origen_batch_size: int = 2000
     http_user_agent: str = "plataforma-datos/0.1"
+    # Carpeta donde la plataforma web guarda los archivos que se suben
+    landing_dir: Path = Path("data/landing")
+    max_subida_mb: int = 200
     # Claves de la API separadas por coma. Vacío = API abierta (solo para desarrollo local).
     api_keys: str = ""
+    # Claves que además permiten cargar, actualizar y eliminar fuentes desde la web.
+    # Sin ninguna clave configurada (uso local), cualquiera puede administrar.
+    admin_keys: str = ""
     # Orígenes web autorizados a llamar la API desde un navegador, separados por coma.
     cors_origins: str = ""
     # Conexión del servidor MCP; conviene un usuario creado con `plataforma crear-lector`.
@@ -21,6 +27,12 @@ class Settings(BaseSettings):
 
 def split_csv(value: str) -> list[str]:
     return [v.strip() for v in value.split(",") if v.strip()]
+
+
+def claves_acceso() -> list[str]:
+    """Claves que permiten consultar: las de lectura y las de administración."""
+    s = get_settings()
+    return split_csv(s.api_keys) + split_csv(s.admin_keys)
 
 
 @lru_cache

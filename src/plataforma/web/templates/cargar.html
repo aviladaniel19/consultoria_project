@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% from "_iconos.html" import icono %}
+{% block titulo %}Cargar datos{% endblock %}
+{% block contenido %}
+<header class="encabezado">
+  <h1>Cargar datos</h1>
+  <p class="lead">Sube un archivo o conecta una API. Revisarás las columnas antes de publicar, y el dataset
+    quedará en el catálogo listo para explorar, descargar y usar desde R o Python.</p>
+</header>
+
+<ol class="pasos">
+  <li><b>Elige el origen</b><span>Un archivo de tu equipo o una API que devuelva registros en JSON.</span></li>
+  <li><b>Revisa</b><span>Vista previa, tipos detectados y la columna que identifica cada fila.</span></li>
+  <li><b>Publica</b><span>La plataforma valida, guarda el historial y lo deja en el catálogo.</span></li>
+</ol>
+
+{% if error %}<div class="alerta" role="alert">{{ error }}</div>{% endif %}
+{% if en_curso %}
+<div class="aviso-info">Cargas en curso:
+  {% for f in en_curso %}<a href="/cargar/progreso/{{ f }}" class="mono">{{ f }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+</div>
+{% endif %}
+
+<div class="dos-columnas">
+  <form class="opcion-carga formulario" method="post" action="/cargar/archivo" enctype="multipart/form-data">
+    <div class="encabezado">
+      <h2>{{ icono("subir") }} Subir un archivo</h2>
+      <p class="tenue">CSV, Excel (.xlsx), JSON o Parquet, hasta {{ max_mb }} MB. En los CSV se detectan
+        solos el separador, la codificación y la coma decimal.</p>
+    </div>
+    <label class="zona-archivo">
+      <input type="file" name="archivo" required accept=".csv,.txt,.tsv,.xlsx,.json,.parquet" data-nombre-archivo>
+      <span data-texto-archivo>Elige un archivo o arrástralo aquí</span>
+    </label>
+    <label>Título
+      <input class="campo" name="titulo" value="{{ valores.titulo or '' }}" placeholder="Si lo dejas vacío, se usa el nombre del archivo">
+    </label>
+    <label>Descripción
+      <textarea class="campo" name="descripcion" rows="2" placeholder="Qué contiene, de dónde viene y para qué sirve">{{ valores.descripcion or '' }}</textarea>
+    </label>
+    <label>Temas
+      <input class="campo" name="etiquetas" value="{{ valores.etiquetas or '' }}" placeholder="Separados por coma: educación, bogotá">
+    </label>
+    <button class="btn primario" type="submit">Continuar {{ icono("flecha") }}</button>
+  </form>
+
+  <form class="opcion-carga formulario" method="post" action="/cargar/api" id="form-api">
+    <div class="encabezado">
+      <h2>{{ icono("enlace") }} Conectar una API</h2>
+      <p class="tenue">Cualquier dirección que devuelva una lista de registros en JSON, como los datasets de datos.gov.co.</p>
+    </div>
+    <label><span>Título <span class="tenue">(obligatorio)</span></span>
+      <input class="campo" name="titulo" required value="{{ valores.titulo or '' }}" placeholder="Ej.: Municipios de Colombia">
+    </label>
+    <label><span>Dirección (URL) <span class="tenue">(obligatoria)</span></span>
+      <input class="campo" name="url" type="url" required value="{{ valores.url or '' }}" placeholder="https://www.datos.gov.co/resource/xxxx-xxxx.json">
+    </label>
+    <button type="button" class="btn chico" data-preset-socrata>Es de datos.gov.co: configurar paginación</button>
+    <label>Descripción
+      <textarea class="campo" name="descripcion" rows="2">{{ valores.descripcion or '' }}</textarea>
+    </label>
+    <label>Temas
+      <input class="campo" name="etiquetas" value="{{ valores.etiquetas or '' }}" placeholder="Separados por coma">
+    </label>
+    <details class="avanzado" {% if valores.paginacion and valores.paginacion != 'none' %}open{% endif %}>
+      <summary>Opciones avanzadas</summary>
+      <label>Ruta de los registros en la respuesta
+        <input class="campo" name="ruta_registros" value="{{ valores.ruta_registros or '' }}" placeholder="Vacío si la respuesta ya es una lista. Ej.: data.items">
+      </label>
+      <div class="fila-2">
+        <label>Paginación
+          <select name="paginacion">
+            <option value="none">Sin paginación</option>
+            <option value="offset" {% if valores.paginacion == 'offset' %}selected{% endif %}>Por desplazamiento (límite y desplazamiento)</option>
+            <option value="page" {% if valores.paginacion == 'page' %}selected{% endif %}>Por número de página</option>
+          </select>
+        </label>
+        <label>Registros por página
+          <input class="campo" type="number" min="1" name="tam_pagina" value="{{ valores.tam_pagina or 1000 }}">
+        </label>
+      </div>
+      <div class="fila-3">
+        <label>Parámetro de límite <input class="campo" name="param_limite" value="{{ valores.param_limite or 'limit' }}"></label>
+        <label>Parámetro de desplazamiento <input class="campo" name="param_desplazamiento" value="{{ valores.param_desplazamiento or 'offset' }}"></label>
+        <label>Parámetro de página <input class="campo" name="param_pagina" value="{{ valores.param_pagina or 'page' }}"></label>
+      </div>
+      <label>Máximo de registros por carga
+        <input class="campo" type="number" min="1" name="max_registros" value="{{ valores.max_registros or 5000 }}">
+      </label>
+      <div class="fila-2">
+        <label>Cabecera de autenticación <input class="campo" name="auth_header" value="{{ valores.auth_header or '' }}" placeholder="Ej.: X-App-Token"></label>
+        <label>Variable con la clave <input class="campo" name="auth_variable" value="{{ valores.auth_variable or '' }}" placeholder="Ej.: SOCRATA_APP_TOKEN"></label>
+      </div>
+      <p class="tenue nota">La clave nunca se escribe aquí: se guarda en el archivo <span class="mono">.env</span> y se lee de esa variable.</p>
+    </details>
+    <button class="btn primario" type="submit">Probar conexión {{ icono("flecha") }}</button>
+  </form>
+</div>
+
+<p class="tenue">¿Sin datos a mano? En la carpeta <span class="mono">ejemplos/</span> del proyecto hay archivos y una API pequeña para probar.</p>
+{% endblock %}

@@ -1,16 +1,15 @@
 # plataforma-datos
 
 Plataforma abierta para extraer, validar, versionar y servir datos públicos y
-propios. **Cada fuente nueva es un archivo YAML**: el motor de ingesta, el
-catálogo, dbt y la API la descubren solos. Con cada carga la plataforma acumula
+propios. Desde la web se sube un archivo o se conecta una API, se revisan las
+columnas y se publica: en segundos el dataset queda en el catálogo, listo para
+explorar, descargar y usar desde R o Python. Con cada carga la plataforma acumula
 contexto sobre sus datos: esquemas versionados, perfiles estadísticos por
 columna, resultados de calidad e historial de ejecuciones.
 
 Se desarrolla inicialmente para la **Facultad de Estadística de la Universidad
 Santo Tomás**. Está pensada para replicarse después en otras facultades y
-entidades. La fuente piloto son los procesos de contratación pública de
-[SECOP II](https://www.datos.gov.co/Gastos-Gubernamentales/SECOP-II-Procesos-de-Contrataci-n/p6dx-8zbt)
-publicados en datos.gov.co.
+entidades.
 
 ## Para qué sirve
 
@@ -24,19 +23,18 @@ publicados en datos.gov.co.
 ## Cómo funciona
 
 ```text
-sources/*.yml ──► motor de ingesta ──► origen.<fuente>   (jsonb, solo se agrega)
-                        │                     │
-                        ▼                     ▼  dbt
-                  meta.* (catálogo)    estandarizado.* ──► analitico.*
-                        │                                      │
-                        └─────────────► API FastAPI ◄──────────┘
-                                         servidor MCP
+web o sources/*.yml ──► motor de ingesta ──► origen.<fuente>   (jsonb, solo se agrega)
+                              │                     │  publicación automática o dbt
+                              ▼                     ▼
+                        meta.* (catálogo)    estandarizado.* ──► analitico.* (dbt)
+                              │                                      │
+                              └──────── web · API · servidor MCP ◄───┘
 ```
 
 | Capa | Esquema | Qué contiene | Quién la escribe |
 | --- | --- | --- | --- |
 | Origen | `origen` | El dato tal como llega de la fuente, sin tocar. Solo se agrega; nunca se borra. | Motor de ingesta |
-| Estandarizado | `estandarizado` | Dato depurado: tipos correctos, sin duplicados y sin cargas en cuarentena. | dbt |
+| Estandarizado | `estandarizado` | Dato depurado: tipos correctos, sin duplicados y sin cargas en cuarentena. | Publicación automática tras cada carga, o un modelo dbt curado |
 | Analítico | `analitico` | Tablas agregadas y modeladas para reportes y tableros. | dbt |
 
 Estas capas equivalen a las que la industria llama *bronze*, *silver* y *gold*
@@ -57,8 +55,8 @@ cp .env.example .env            # en Windows: copy .env.example .env
 ```
 
 **Windows:** doble clic en `iniciar.bat`. Abre Docker Desktop si hace falta,
-levanta PostgreSQL y la API, y espera a que respondan. Luego abre
-<http://localhost:8000> en el navegador.
+actualiza la imagen si el código cambió, levanta PostgreSQL y la plataforma web,
+y espera a que respondan.
 
 **macOS / Linux:**
 
@@ -66,17 +64,13 @@ levanta PostgreSQL y la API, y espera a que respondan. Luego abre
 docker compose up -d --build db api          # PostgreSQL + plataforma web en http://localhost:8000
 ```
 
-Primera carga de datos (cualquier sistema):
+**Primera carga:** abre <http://localhost:8000/cargar>, sube un archivo o conecta
+una API, revisa las columnas y pulsa **Publicar dataset**. Para probar hay datos
+pequeños en [`ejemplos/`](ejemplos/README.md): el conjunto Iris en CSV, en CSV de
+Excel colombiano y en Excel, y la API de municipios DIVIPOLA del DANE.
 
-```bash
-docker compose run --rm cli validate                  # valida el registro de fuentes
-docker compose run --rm cli inspect secop_procesos    # muestra los campos reales de la fuente
-docker compose run --rm cli ingest --all              # carga todas las fuentes activas
-docker compose run --rm cli dbt-sources               # declara en dbt las tablas de origen
-docker compose run --rm dbt build                     # construye y prueba estandarizado y analitico
-```
-
-Para detener: `docker compose down`. Los datos se conservan en el volumen `pgdata`.
+Para detener: `docker compose down`. Los datos se conservan en el volumen
+`pgdata`; `docker compose down -v` los borra y deja la plataforma como nueva.
 
 Sin Docker: `pip install -e ".[dev,transform]"` y usa el comando `plataforma`
 directamente. El `Makefile` resume los comandos, pero usa sintaxis POSIX: en
@@ -91,7 +85,9 @@ es [`.env.example`](.env.example).
 | --- | --- |
 | `POSTGRES_PASSWORD` | Contraseña de PostgreSQL en Docker |
 | `PLATAFORMA_DATABASE_URL` | Conexión a la base cuando se ejecuta fuera de Docker |
-| `PLATAFORMA_API_KEYS` | Claves de acceso a la API, separadas por coma. Vacío = API abierta (solo desarrollo) |
+| `PLATAFORMA_API_KEYS` | Claves de lectura (API y web), separadas por coma. Vacío = abierta (solo desarrollo) |
+| `PLATAFORMA_ADMIN_KEYS` | Claves que además permiten cargar, actualizar y eliminar datos desde la web |
+| `PLATAFORMA_MAX_SUBIDA_MB` | Tamaño máximo de un archivo subido (200 MB por defecto) |
 | `PLATAFORMA_CORS_ORIGINS` | Sitios web autorizados a llamar la API desde el navegador |
 | `PLATAFORMA_MCP_DATABASE_URL` | Usuario de solo lectura para el servidor MCP |
 | `SOCRATA_APP_TOKEN` | Token opcional de datos.gov.co; sube el límite de peticiones |
@@ -112,12 +108,23 @@ En <http://localhost:8000> hay una interfaz para quienes no programan:
 | **Catálogo** | Buscar datasets por tema, columna o fuente (sin importar tildes), con su tamaño, fecha de actualización y estado de calidad |
 | **Ficha del dataset** | Vista previa, perfil estadístico de cada columna (vacíos, distintos, media, mediana, histograma), historial de cargas y reglas de calidad, y código listo para R, Python y SQL |
 | **Explorar** | Filtrar, ordenar y paginar cualquier tabla, y descargar exactamente esas filas en CSV (o CSV para Excel, con `;` y decimales con coma) |
-| **Salud** | Estado de cada fuente: última carga, historial reciente y reglas incumplidas |
+| **Salud** | Estado de cada fuente: última carga, historial reciente y reglas incumplidas, con botones para **actualizar**, **reemplazar el archivo** o **eliminar** la fuente |
+| **Cargar datos** | Subir un archivo (CSV, Excel, JSON o Parquet) o conectar una API, revisar la vista previa y los tipos detectados, elegir la llave y las columnas obligatorias, y publicar |
 
 El buscador superior (atajo `Ctrl+K`) salta a cualquier dataset, columna o
 fuente. Tiene tema claro y oscuro con los colores institucionales, y en el
-celular las secciones pasan a una barra inferior. Si `PLATAFORMA_API_KEYS` tiene
-claves, la interfaz pide una al entrar y la recuerda en el navegador.
+celular las secciones pasan a una barra inferior.
+
+**Al publicar desde la web**, la plataforma escribe la configuración en
+`sources/<nombre>.yml` (versionable en git, editable a mano), guarda el archivo
+en `data/landing/`, ejecuta la carga en segundo plano y publica
+`estandarizado.<nombre>`. En los CSV detecta sola el separador, la codificación y
+la coma decimal, y los nombres de columna se limpian (`Largo del sépalo (cm)` →
+`largo_del_sepalo_cm`) guardando el original como descripción.
+
+**Acceso:** sin claves configuradas (uso local) todo está abierto. Con claves, la
+interfaz pide una al entrar y la recuerda en el navegador; solo las de
+`PLATAFORMA_ADMIN_KEYS` ven **Cargar datos** y los botones de administración.
 
 Las páginas se generan en el servidor con plantillas Jinja y HTMX
 (`src/plataforma/web/`): no hay paso de compilación ni dependencias de
@@ -241,13 +248,24 @@ Tipos de fuente soportados: APIs REST que devuelven JSON (cuatro tipos de
 paginación y de autenticación) y archivos CSV, Excel, Parquet o JSON, locales o
 por URL. La lectura directa desde otras bases de datos aún no está disponible.
 
+`secop_procesos.yml` queda como ejemplo de fuente grande e incremental, pero
+deshabilitada: SECOP tiene más de 1,5 millones de registros en 2026 y cada carga
+tarda minutos. Para usarla, cambia `enabled` a `true` y habilita sus dos modelos
+dbt en `transform/dbt_project.yml`.
+
 ### Agregar una fuente nueva
+
+Lo más simple es **Cargar datos** en la web. Por terminal:
 
 1. Copia `sources/_plantilla.yml` como `sources/<nombre>.yml` y ajústalo.
 2. `plataforma validate` y `plataforma inspect <nombre>` para ver los campos reales.
-3. `plataforma ingest <nombre>`.
-4. `plataforma dbt-sources` y crea su modelo en `transform/models/estandarizado/`
-   usando la macro `origen_vigente('<nombre>', ['<llave>'])`.
+3. `plataforma ingest <nombre>`: carga y publica `estandarizado.<nombre>`.
+
+Para una versión curada (columnas renombradas, reglas de negocio), crea un modelo
+dbt en `transform/models/estandarizado/` con la macro
+`origen_vigente('<nombre>', ['<llave>'])`, ejecuta `plataforma dbt-sources` y
+`dbt build`. Desde ese momento dbt se encarga de la tabla y la publicación
+automática no la toca.
 
 ### Qué hace cada ejecución
 
@@ -260,6 +278,9 @@ por URL. La lectura directa desde otras bases de datos aún no está disponible.
 4. Evalúa el contrato (`meta.quality_results`) y perfila cada columna
    (`meta.column_profiles`: nulos, distintos, mínimo, máximo, media, desviación, mediana).
 5. Agrega los registros crudos a `origen.<fuente>` y avanza el cursor.
+6. Publica `estandarizado.<fuente>`: tipos corregidos, nombres de columna limpios,
+   sin duplicados por llave y solo con cargas aprobadas. Sin llave ni campo
+   incremental, cada carga es una foto completa y se publica solo la última.
 
 Los pasos 3 a 5 van en una sola transacción. Estados posibles de una ejecución:
 
@@ -276,15 +297,17 @@ Los pasos 3 a 5 van en una sola transacción. Estados posibles de una ejecución
 .
 ├── sources/                    # REGISTRO DE FUENTES: un YAML por fuente
 │   ├── _plantilla.yml          # referencia completa del formato (no se carga)
-│   ├── secop_procesos.yml      # API Socrata de datos.gov.co, incremental
-│   └── ejemplo_archivo.yml     # fuente tipo archivo (deshabilitada)
+│   ├── secop_procesos.yml      # ejemplo de API grande e incremental (deshabilitada)
+│   └── ejemplo_archivo.yml     # ejemplo de fuente tipo archivo (deshabilitada)
 ├── src/plataforma/
 │   ├── registry/               # modelo pydantic del YAML + cargador con ${VARIABLES}
 │   ├── ingestion/              # extractores REST y archivo, motor genérico
 │   ├── quality/                # inferencia de tipos, perfilado y contratos
 │   ├── storage/                # DDL del catálogo, escritura en meta.* y origen.*
 │   ├── api/                    # FastAPI genérica: catálogo + datasets, con clave de acceso
-│   ├── web/                    # plataforma web: rutas, plantillas Jinja, estilos, HTMX y fuentes
+│   ├── web/                    # plataforma web: páginas, carga de datos (carga.py), cargas en
+│   │                           # segundo plano (tareas.py), plantillas, estilos, HTMX y fuentes
+│   ├── publicacion.py          # publicación automática de estandarizado.<fuente>
 │   ├── consultas.py            # lectura, filtros y CSV compartidos por API, web y MCP
 │   ├── mcp_server.py           # servidor MCP de solo lectura para asistentes de IA
 │   └── cli.py                  # comando `plataforma`
@@ -292,7 +315,8 @@ Los pasos 3 a 5 van en una sola transacción. Estados posibles de una ejecución
 │   ├── macros/plataforma.sql   # origen_vigente(), a_numero(), a_fecha()
 │   └── models/{estandarizado,analitico}/
 ├── tests/                      # unitarias + integración contra PostgreSQL
-├── data/landing/               # zona de aterrizaje para fuentes tipo archivo
+├── ejemplos/                   # datos pequeños para probar (Iris, API DIVIPOLA)
+├── data/landing/               # archivos subidos desde la web (no se versionan)
 ├── iniciar.bat                 # arranque en Windows
 ├── informe-revision.html       # informe de la revisión técnica
 ├── objetivos-estado-del-arte.html  # objetivos, beneficiarios y estado del arte
@@ -321,12 +345,14 @@ incluyen un cambio de esquema y una regla en cuarentena. También verifica que e
 catálogo no guarde secretos, recorre todos los endpoints, comprueba la clave de
 la API y los permisos del usuario de solo lectura, prueba las herramientas MCP
 y recorre la plataforma web: catálogo, fichas, filtros, descargas e ingreso con clave.
+También sube un archivo desde la web, lo publica, lo reemplaza y lo elimina, y
+comprueba que la publicación automática excluya las cargas en cuarentena y
+respete las tablas que construye dbt.
 
 ## Hoja de ruta
 
 - Asistente «Pregúntale a los datos» en la web, con Groq como modelo de pruebas.
-- Agregar fuentes desde el navegador, con un asistente paso a paso que genere el YAML.
-- Lanzar cargas desde la sección Salud, con permisos de administrador.
+- Reconocer números con coma decimal en las respuestas de APIs (p. ej. coordenadas de DIVIPOLA).
 - Cargas automáticas con un orquestador (Dagster o Airflow) que lea `schedule` de cada YAML.
 - Límites de uso por clave en la API.
 - Detección de derivas sobre `meta.column_profiles`: PSI y pruebas de

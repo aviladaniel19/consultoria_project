@@ -18,12 +18,19 @@ models:
     # Registra cuándo se reconstruyó cada tabla (el frontend lo muestra como "actualizado")
     +post-hook:
       - >-
-        insert into meta.construcciones (tabla, construida_en)
-        values ('{{ this.schema }}.{{ this.identifier }}', now())
-        on conflict (tabla) do update set construida_en = excluded.construida_en
+        insert into meta.construcciones (tabla, construida_en, construida_por)
+        values ('{{ this.schema }}.{{ this.identifier }}', now(), 'dbt')
+        on conflict (tabla) do update
+        set construida_en = excluded.construida_en, construida_por = 'dbt'
     estandarizado:
       +schema: estandarizado
       +materialized: table
+      # Ejemplo de modelo curado para SECOP. Deshabilitado junto con su fuente
+      # (sources/secop_procesos.yml): sin datos cargados, dbt fallaría al construirlo.
+      estandarizado_secop_procesos:
+        +enabled: false
     analitico:
       +schema: analitico
       +materialized: table
+      analitico_contratacion_mensual:
+        +enabled: false

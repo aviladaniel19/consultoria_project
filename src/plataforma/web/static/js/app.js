@@ -112,3 +112,42 @@
     if (tab && tab.getAttribute("aria-selected") !== "true") tab.click();
   });
 })();
+
+// ---- carga de datos
+(function () {
+  "use strict";
+  // zona de archivo: muestra el nombre elegido y resalta al arrastrar encima
+  document.addEventListener("change", function (ev) {
+    var input = ev.target;
+    if (input.matches("[data-nombre-archivo]")) {
+      var zona = input.closest(".zona-archivo");
+      var texto = zona.querySelector("[data-texto-archivo]");
+      if (input.files.length) { texto.textContent = input.files[0].name; zona.classList.add("con-archivo"); }
+    }
+    // reemplazar archivo desde Salud: se envía al elegirlo
+    if (input.matches("[data-enviar-al-elegir]") && input.files.length) input.form.submit();
+  });
+  ["dragenter", "dragover"].forEach(function (tipo) {
+    document.addEventListener(tipo, function (ev) {
+      var zona = ev.target.closest && ev.target.closest(".zona-archivo");
+      if (zona) zona.classList.add("encima");
+    });
+  });
+  ["dragleave", "drop"].forEach(function (tipo) {
+    document.addEventListener(tipo, function (ev) {
+      var zona = ev.target.closest && ev.target.closest(".zona-archivo");
+      if (zona) zona.classList.remove("encima");
+    });
+  });
+  // configuración típica de las APIs de datos.gov.co (Socrata)
+  document.addEventListener("click", function (ev) {
+    if (!ev.target.closest("[data-preset-socrata]")) return;
+    var form = document.getElementById("form-api");
+    form.paginacion.value = "offset";
+    form.param_limite.value = "$limit";
+    form.param_desplazamiento.value = "$offset";
+    form.tam_pagina.value = "1000";
+    form.querySelector("details.avanzado").open = true;
+    ev.target.textContent = "Paginación de datos.gov.co configurada";
+  });
+})();

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titulo %}Eliminar {{ spec.name }}{% endblock %}
+{% block contenido %}
+<div class="caja-centro" style="max-width: 560px">
+  <h1>¿Eliminar la fuente «{{ spec.title or spec.name }}»?</h1>
+  <p>Se borrará de forma definitiva:</p>
+  <ul class="lista-simple">
+    <li>Su configuración, <span class="mono">sources/{{ spec.name }}.yml</span></li>
+    {% if spec.type == "file" %}<li>El archivo subido, <span class="mono">{{ spec.connection.path }}</span></li>{% endif %}
+    <li>Los datos crudos (<span class="mono">origen.{{ spec.name }}</span>) y todo su historial de cargas y calidad</li>
+    <li>El dataset publicado <span class="mono">estandarizado.{{ spec.name }}</span>, si lo creó la plataforma</li>
+  </ul>
+  <p class="tenue">Los modelos dbt y las tablas que dependan de esta fuente no se borran.</p>
+  {% if en_curso %}
+  <div class="alerta">La fuente se está cargando ahora. Espera a que termine para eliminarla.</div>
+  <a class="btn" href="/salud#fuente-{{ spec.name }}">Volver</a>
+  {% else %}
+  <form method="post" action="/fuentes/{{ spec.name }}/eliminar" class="botonera">
+    <button class="btn peligro" type="submit">Eliminar definitivamente</button>
+    <a class="btn" href="/salud#fuente-{{ spec.name }}">Cancelar</a>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

@@ -111,3 +111,32 @@ CREATE TABLE IF NOT EXISTS meta.construcciones (
     tabla         text PRIMARY KEY,                 -- esquema.tabla
     construida_en timestamptz NOT NULL DEFAULT now()
 );
+-- 'dbt' = modelo curado; 'plataforma' = publicación automática tras cada carga.
+-- La publicación automática nunca sobrescribe una tabla que construye dbt.
+ALTER TABLE meta.construcciones ADD COLUMN IF NOT EXISTS construida_por text NOT NULL DEFAULT 'dbt';
+
+-- Conversiones tolerantes para la publicación automática: un valor que no cumple el
+-- formato queda NULL en vez de abortar la construcción de toda la tabla.
+CREATE OR REPLACE FUNCTION meta.a_numero(v text) RETURNS numeric
+LANGUAGE plpgsql IMMUTABLE AS $$
+BEGIN
+    RETURN trim(v)::numeric;
+EXCEPTION WHEN others THEN
+    RETURN NULL;
+END $$;
+
+CREATE OR REPLACE FUNCTION meta.a_fecha(v text) RETURNS timestamp
+LANGUAGE plpgsql IMMUTABLE AS $$
+BEGIN
+    RETURN trim(v)::timestamp;
+EXCEPTION WHEN others THEN
+    RETURN NULL;
+END $$;
+
+CREATE OR REPLACE FUNCTION meta.a_booleano(v text) RETURNS boolean
+LANGUAGE plpgsql IMMUTABLE AS $$
+BEGIN
+    RETURN trim(v)::boolean;
+EXCEPTION WHEN others THEN
+    RETURN NULL;
+END $$;

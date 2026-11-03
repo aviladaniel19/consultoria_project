@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block titulo %}Carga de {{ t.fuente }}{% endblock %}
+{% block contenido %}
+<nav class="miga" aria-label="Ruta"><a href="/cargar">Cargar datos</a><span aria-hidden="true">›</span><span>{{ t.fuente }}</span></nav>
+<header class="encabezado">
+  <h1>Carga de datos</h1>
+  <p class="lead">La plataforma lee la fuente, valida las reglas de calidad, guarda el historial y publica el dataset.</p>
+</header>
+{% include "_progreso.html" %}
+{% endblock %}

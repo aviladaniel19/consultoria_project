@@ -17,7 +17,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import Connection
 
 from .. import consultas
-from ..config import get_settings, split_csv
+from ..config import claves_acceso, get_settings, split_csv
 from ..storage.db import get_engine
 from . import datos
 
@@ -92,15 +92,22 @@ def fmt_pct(v: Any, decimales: int = 1) -> str:
     return "—" if v is None else fmt_num(float(v) * 100, decimales) + " %"
 
 
+def _decimales(v: Any) -> int:
+    """Los decimales que el valor realmente tiene (5.1 -> 1), hasta 4; 2 en cifras de miles en adelante."""
+    v = float(v)
+    if v.is_integer():
+        return 0
+    texto = f"{abs(v):.{2 if abs(v) >= 1000 else 4}f}".rstrip("0")
+    return len(texto.split(".")[1])
+
+
 def fmt_celda(v: Any) -> str:
     if v is None:
         return ""
     if isinstance(v, datetime):
         return fmt_fecha(v)
-    if isinstance(v, (int, float)) and not isinstance(v, bool):
-        return fmt_num(v, 0 if float(v).is_integer() else 2)
-    if type(v).__name__ == "Decimal":
-        return fmt_num(v, 0 if v == v.to_integral_value() else 2)
+    if (isinstance(v, (int, float)) and not isinstance(v, bool)) or type(v).__name__ == "Decimal":
+        return fmt_num(v, _decimales(v))
     if hasattr(v, "isoformat"):
         return fmt_fecha(v, hora=False)
     return str(v)
@@ -118,15 +125,27 @@ class RequiereIngreso(Exception):
         self.destino = destino
 
 
-def _clave_valida(clave: str | None) -> bool:
-    claves = split_csv(get_settings().api_keys)
+def _clave_valida(clave: str | None, claves: list[str] | None = None) -> bool:
+    claves = claves_acceso() if claves is None else claves
     return bool(clave) and any(secrets.compare_digest(clave, k) for k in claves)
+
+
+def hay_sesion(request: Request) -> bool:
+    """Hay una sesión que se pueda cerrar (solo cuando la plataforma usa claves)."""
+    return bool(claves_acceso()) and _clave_valida(request.cookies.get(COOKIE))
+
+
+def puede_administrar(request: Request) -> bool:
+    """Cargar, actualizar y eliminar fuentes. Sin claves configuradas (uso local), cualquiera puede."""
+    if not claves_acceso():
+        return True
+    return _clave_valida(request.cookies.get(COOKIE), split_csv(get_settings().admin_keys))
 
 
 def sesion(request: Request) -> bool:
     """Si la API tiene claves, el frontend pide una de ellas una vez y la guarda en una cookie.
     Devuelve True cuando hay sesión que se pueda cerrar."""
-    if not split_csv(get_settings().api_keys):
+    if not claves_acceso():
         return False
     if _clave_valida(request.cookies.get(COOKIE)):
         return True
@@ -145,6 +164,7 @@ def conexion():
 
 
 def render(request: Request, plantilla: str, status_code: int = 200, **contexto: Any) -> HTMLResponse:
+    contexto.setdefault("admin", puede_administrar(request))
     return templates.TemplateResponse(request, plantilla, contexto, status_code=status_code)
 
 
@@ -159,7 +179,7 @@ def no_encontrado(request: Request, mensaje: str, con_sesion: bool) -> HTMLRespo
 
 @router.get("/ingresar")
 def ingresar_form(request: Request, siguiente: str = "/", error: bool = False):
-    if not split_csv(get_settings().api_keys):
+    if not claves_acceso():
         return RedirectResponse(_destino_seguro(siguiente), 303)
     return render(request, "ingresar.html", siguiente=_destino_seguro(siguiente), error=error,
                   seccion=None, con_sesion=False)

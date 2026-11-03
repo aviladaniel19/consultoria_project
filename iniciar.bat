@@ -76,9 +76,10 @@ echo    Plataforma web ..... http://localhost:8000
 echo    API y documentacion  http://localhost:8000/docs
 echo    PostgreSQL ......... localhost:5432  (base: plataforma)
 echo.
+echo  Para empezar, abre http://localhost:8000/cargar y sube un archivo o conecta una API.
+echo  Hay datos de prueba en la carpeta ejemplosecho.
 echo  Comandos utiles:
-echo    Cargar datos ....... docker compose run --rm cli ingest --all
-echo    Reconstruir capas .. docker compose run --rm cli dbt-sources ^&^& docker compose run --rm dbt build
+echo    Cargar por terminal  docker compose run --rm cli ingest --all
 echo    Ver registros ...... docker compose logs -f api
 echo    Detener ............ docker compose down
 echo.

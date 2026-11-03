@@ -6,6 +6,7 @@
 
 # --- Identidad (obligatorio) -------------------------------------------------
 name: mi_fuente                  # [a-z0-9_], igual al nombre del archivo; será la tabla origen.<name>
+title: Mi fuente                 # opcional, título que muestra el catálogo web
 description: Qué contiene y para qué sirve
 owner: daniel                    # opcional
 tags: [tema, pais]               # opcional, sirve para buscar en el catálogo

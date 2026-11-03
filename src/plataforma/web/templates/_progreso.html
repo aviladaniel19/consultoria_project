@@ -1,0 +1,41 @@
+{% from "_macros.html" import estado %}
+<div id="progreso" class="progreso" aria-live="polite"
+     {% if t.activa %}hx-get="/cargar/progreso/{{ t.fuente }}" hx-trigger="every 1500ms" hx-swap="outerHTML"{% endif %}>
+{% if t.activa %}
+  <div class="cargando-grande">
+    <span class="punto"></span>
+    <div><b>Cargando <span class="mono">{{ t.fuente }}</span>…</b>
+      <span class="tenue">{{ t.segundos }} s. Puedes salir de esta página: la carga sigue en segundo plano.</span></div>
+  </div>
+{% elif t.error and not t.estado %}
+  <div class="alerta" role="alert"><b>No se pudo iniciar la carga.</b><br>{{ t.error }}</div>
+  <div class="botonera"><a class="btn" href="/cargar">Volver a Cargar datos</a></div>
+{% else %}
+  <div class="resultado-carga">
+    <div class="datos-clave">{{ estado(t.estado) }}<span>en <b>{{ t.segundos }} s</b></span></div>
+    <div class="datos-clave">
+      <span class="num">Registros leídos <b>{{ t.extraidos | num }}</b></span>
+      <span class="num">Cargados <b>{{ t.cargados | num }}</b></span>
+      {% if t.publicada %}<span class="num">Publicado en <b class="mono">{{ t.publicada }}</b> con <b>{{ t.filas_publicadas | num }}</b> filas</span>{% endif %}
+    </div>
+    {% if t.estado == "failed_quality" %}
+    <p class="alerta">Falló una regla obligatoria de calidad: estos datos quedaron en cuarentena y no se publicaron.
+      El dataset conserva la última versión aprobada.</p>
+    {% elif t.estado == "failed" %}
+    <p class="alerta">{{ t.error }}</p>
+    {% elif t.cargados == 0 %}
+    <p class="tenue">No había registros nuevos: el dataset ya estaba al día.</p>
+    {% endif %}
+    {% if t.reglas %}<p class="tenue">Reglas incumplidas: <span class="mono">{{ t.reglas | join(", ") }}</span></p>{% endif %}
+    {% if t.error_publicacion %}<p class="alerta">La carga se guardó, pero no se pudo publicar: {{ t.error_publicacion }}</p>{% endif %}
+    <div class="botonera">
+      {% if t.publicada %}
+      <a class="btn primario" href="/datos/estandarizado/{{ t.fuente }}">Ver el dataset</a>
+      <a class="btn" href="/explorar/estandarizado/{{ t.fuente }}">Explorar y filtrar</a>
+      {% endif %}
+      <a class="btn" href="/cargar">Cargar otros datos</a>
+      <a class="btn" href="/salud#fuente-{{ t.fuente }}">Ver en Salud</a>
+    </div>
+  </div>
+{% endif %}
+</div>

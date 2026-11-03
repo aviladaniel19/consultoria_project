@@ -1,10 +1,19 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import pytest
 
 from plataforma.consultas import ConsultaInvalida, Filtro, _armar
 from plataforma.web.datos import normalizar, titulo_y_descripcion
-from plataforma.web.rutas import _destino_seguro, fmt_compacto, fmt_fecha, fmt_hace, fmt_num, fmt_pct
+from plataforma.web.rutas import (
+    _destino_seguro,
+    fmt_celda,
+    fmt_compacto,
+    fmt_fecha,
+    fmt_hace,
+    fmt_num,
+    fmt_pct,
+)
 
 COLS = [{"name": "precio", "type": "numeric"}, {"name": "depto", "type": "text"},
         {"name": "fecha", "type": "date"}, {"name": "datos", "type": "jsonb"}]
@@ -43,6 +52,8 @@ def test_armar_rechaza_columnas_y_operadores_desconocidos(filtros, orden):
 def test_formatos_de_colombia():
     assert fmt_num(1250000) == "1.250.000" and fmt_num(1234.5, 2) == "1.234,50"
     assert fmt_num(None) == "—"
+    assert [fmt_celda(v) for v in (5.1, 3.0, 0.25, 83083270.905154, Decimal("1250000.50"))] == [
+        "5,1", "3", "0,25", "83.083.270,91", "1.250.000,5"]
     assert fmt_compacto(1_250_000_000) == "1.250 M" and fmt_compacto(48_500_000) == "48,5 M"
     assert fmt_compacto(950) == "950"
     assert fmt_pct(0.0016, 2) == "0,16 %"

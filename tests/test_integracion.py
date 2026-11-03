@@ -4,6 +4,7 @@
 """
 import json
 import os
+from pathlib import Path
 
 import httpx
 import pytest
@@ -243,6 +244,100 @@ def test_frontend_y_filtros(engine, monkeypatch):
     app.dependency_overrides.clear()
     with engine.begin() as c:
         c.execute(text("DELETE FROM analitico.demo WHERE x IS NULL OR x = 30"))
+
+
+def test_publicacion_automatica(engine):
+    """test_ciclo_completo publicó estandarizado.procesos_demo sin escribir SQL."""
+    from plataforma.publicacion import publicar
+
+    with engine.connect() as c:
+        # la segunda carga quedó en cuarentena: solo llegan las 3 filas de la primera
+        assert c.execute(text("SELECT count(*) FROM estandarizado.procesos_demo")).scalar() == 3
+        tipos = dict(c.execute(text("""SELECT column_name, data_type FROM information_schema.columns
+                                       WHERE table_schema = 'estandarizado' AND table_name = 'procesos_demo'""")).all())
+        assert tipos["precio"] == "numeric" and tipos["fecha"].startswith("timestamp")
+        assert {"cargado_en", "id_carga"} <= tipos.keys()
+        assert "entidad" not in tipos          # esa columna solo llegó en la carga en cuarentena
+        assert c.execute(text("SELECT construida_por FROM meta.construcciones "
+                              "WHERE tabla = 'estandarizado.procesos_demo'")).scalar() == "plataforma"
+        assert c.execute(text("SELECT obj_description('estandarizado.procesos_demo'::regclass)")).scalar() \
+            == "Procesos demo\nfuente simulada"
+    # una tabla que construye dbt nunca se sobrescribe
+    with engine.begin() as c:
+        c.execute(text("UPDATE meta.construcciones SET construida_por = 'dbt' WHERE tabla = 'estandarizado.procesos_demo'"))
+    assert publicar(engine, SPEC) is None
+    with engine.begin() as c:
+        c.execute(text("UPDATE meta.construcciones SET construida_por = 'plataforma' "
+                       "WHERE tabla = 'estandarizado.procesos_demo'"))
+    assert publicar(engine, SPEC).filas == 3
+
+
+def test_carga_desde_la_web(engine, tmp_path, monkeypatch):
+    """Subir un archivo, revisar, publicar, reemplazar y eliminar, todo desde la web."""
+    from plataforma.web import rutas, tareas
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "database_url", URL_DB)
+    monkeypatch.setattr(settings, "sources_dir", tmp_path / "sources")
+    monkeypatch.setattr(settings, "landing_dir", tmp_path / "landing")
+    get_engine.cache_clear()
+
+    def override():
+        with engine.connect() as conn:
+            yield conn
+    app.dependency_overrides[rutas.conexion] = override
+    cli = TestClient(app)
+    ejemplo = Path(__file__).resolve().parents[1] / "ejemplos" / "iris_excel_colombia.csv"
+
+    with ejemplo.open("rb") as fh:
+        r = cli.post("/cargar/archivo", files={"archivo": (ejemplo.name, fh)},
+                     data={"titulo": "Flores", "etiquetas": "biología"}, follow_redirects=False)
+    assert r.headers["location"] == "/cargar/revisar/flores"
+    revision = cli.get("/cargar/revisar/flores").text
+    assert "largo_del_sepalo_cm" in revision and "número" in revision          # ; y coma decimal detectados
+    r = cli.post("/cargar/publicar/flores", data={"llave": "", "obligatorias": ["Especie"]}, follow_redirects=False)
+    assert r.headers["location"] == "/cargar/progreso/flores"
+    t = tareas.resumen(tareas.esperar("flores"))
+    assert (t["estado"], t["cargados"], t["publicada"], t["filas_publicadas"]) == (
+        "success", 150, "estandarizado.flores", 150)
+    assert "Ver el dataset" in cli.get("/cargar/progreso/flores").text
+    assert (tmp_path / "sources" / "flores.yml").exists()
+
+    with engine.connect() as c:
+        tipo = c.execute(text("SELECT data_type FROM information_schema.columns WHERE table_schema = 'estandarizado'"
+                              " AND table_name = 'flores' AND column_name = 'largo_del_sepalo_cm'")).scalar()
+        assert tipo == "numeric"
+    assert "Flores" in cli.get("/").text and "#biologia" in cli.get("/").text
+
+    # una fuente con el mismo nombre se rechaza; el reemplazo exige la misma extensión
+    with ejemplo.open("rb") as fh:
+        assert "Ya existe" in cli.post("/cargar/archivo", files={"archivo": (ejemplo.name, fh)},
+                                       data={"titulo": "Flores"}).text
+    assert cli.post("/fuentes/flores/archivo", files={"archivo": ("x.xlsx", b"x")}).status_code == 400
+    with ejemplo.open("rb") as fh:
+        cli.post("/fuentes/flores/archivo", files={"archivo": (ejemplo.name, fh)})
+    assert tareas.resumen(tareas.esperar("flores"))["filas_publicadas"] == 150      # sin llave: reemplaza
+
+    # con claves, solo la de administración puede cargar
+    monkeypatch.setattr(settings, "api_keys", "k-lector")
+    monkeypatch.setattr(settings, "admin_keys", "k-admin")
+    lector, jefe = TestClient(app), TestClient(app)
+    lector.post("/ingresar", data={"clave": "k-lector"})
+    jefe.post("/ingresar", data={"clave": "k-admin"})
+    assert lector.get("/cargar").status_code == 403 and 'href="/cargar"' not in lector.get("/").text
+    assert jefe.get("/cargar").status_code == 200 and 'href="/cargar"' in jefe.get("/").text
+    assert lector.post("/fuentes/flores/eliminar").status_code == 403
+
+    # eliminar borra configuración, archivo, tablas e historial
+    assert jefe.post("/fuentes/flores/eliminar", follow_redirects=False).status_code == 303
+    with engine.connect() as c:
+        assert c.execute(text("SELECT to_regclass('estandarizado.flores'), to_regclass('origen.flores')")).one() \
+            == (None, None)
+        assert c.execute(text("SELECT count(*) FROM meta.runs WHERE source_name = 'flores'")).scalar() == 0
+    assert not (tmp_path / "sources" / "flores.yml").exists()
+    assert not (tmp_path / "landing" / "flores.csv").exists()
+    app.dependency_overrides.clear()
+    get_engine.cache_clear()
 
 
 def test_migra_esquemas_con_nombres_antiguos(engine):

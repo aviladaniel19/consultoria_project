@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import estado %}
+{% from "_iconos.html" import icono %}
 {% block titulo %}Salud de las fuentes{% endblock %}
 {% block contenido %}
 <header class="encabezado">
@@ -32,7 +33,7 @@
     <div class="cab">
       {% if s.cargas %}
       {% set maxr = (s.cargas | map(attribute="records_loaded") | max) or 1 %}
-      <span class="tenue">Últimas {{ s.cargas | length }} cargas</span>
+      <span class="tenue">{{ "Última carga" if s.cargas | length == 1 else "Últimas " ~ (s.cargas | length) ~ " cargas" }}</span>
       <div class="tira" role="img" aria-label="Historial de las últimas {{ s.cargas | length }} cargas de {{ s.name }}">
         {% for c in s.cargas %}{% set e = ESTADOS.get(c.status) or ESTADOS.get(none) %}
         <i class="{{ e[0] }}" style="height: {{ 30 + 70 * (c.records_loaded / maxr) }}%" title="{{ c.started_at | fecha }} · {{ e[2] }} · {{ c.records_loaded | num }} registros"></i>
@@ -49,14 +50,29 @@
         {% endfor %}
       </div>
       {% endif %}
-      <div class="comando" title="Ejecuta este comando en la carpeta del proyecto para cargar la fuente ahora">
-        <code id="cmd-{{ s.name }}">docker compose run --rm cli ingest {{ s.name }}</code>
-        <button class="btn chico" type="button" data-copiar="cmd-{{ s.name }}">Copiar</button>
+      {% if admin %}
+      <div class="botonera">
+        <form method="post" action="/fuentes/{{ s.name }}/actualizar">
+          <button class="btn chico" type="submit">{{ icono("actualizar") }}Actualizar ahora</button>
+        </form>
+        {% if s.type == "file" %}
+        <form method="post" action="/fuentes/{{ s.name }}/archivo" enctype="multipart/form-data" class="reemplazo">
+          <label class="btn chico">{{ icono("subir") }}Reemplazar archivo
+            <input type="file" name="archivo" required class="solo-lector" data-enviar-al-elegir></label>
+        </form>
+        {% endif %}
+        {% if s.ultimo_estado in ("success", "success_with_warnings") %}
+        <a class="btn chico" href="/datos/estandarizado/{{ s.name }}">Ver dataset</a>
+        {% endif %}
+        <a class="btn chico peligro-suave" href="/fuentes/{{ s.name }}/eliminar">Eliminar</a>
       </div>
+      {% endif %}
     </div>
   </article>
   {% else %}
-  <div class="vacio-grande"><b>No hay fuentes registradas.</b><span>Agrega un archivo YAML en la carpeta <span class="mono">sources/</span> y ejecuta una carga.</span></div>
+  <div class="vacio-grande"><b>No hay fuentes registradas.</b>
+    <span>Carga un archivo o conecta una API desde <i>Cargar datos</i>.</span>
+    {% if admin %}<a class="btn primario" href="/cargar">Cargar datos</a>{% endif %}</div>
   {% endfor %}
 </section>
 

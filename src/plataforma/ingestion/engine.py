@@ -8,6 +8,7 @@ Para cualquier fuente del registro:
   5. evalúa el contrato y perfila cada columna
   6. agrega los registros crudos a origen.<fuente>
   7. avanza el cursor y cierra la ejecución
+  8. publica estandarizado.<fuente> (salvo que la construya un modelo dbt)
 
 Los pasos 4–7 van en una sola transacción: una ejecución fallida no deja
 filas a medias en la capa de origen.
@@ -23,6 +24,7 @@ import httpx
 import pandas as pd
 from sqlalchemy import Engine
 
+from .. import publicacion
 from ..config import get_settings
 from ..quality.contracts import missing_columns, run_checks
 from ..quality.profiling import infer_schema, profile
@@ -52,6 +54,21 @@ class RunResult:
     schema_changes: dict[str, list[str]] = field(default_factory=dict)
     failed_checks: list[str] = field(default_factory=list)
     error: str | None = None
+    published: str | None = None          # tabla estandarizada publicada tras la carga
+    published_rows: int | None = None
+    publish_error: str | None = None
+
+
+def _publicar(engine: Engine, spec: SourceSpec, records: list[dict], result: RunResult) -> None:
+    """Publica la capa estandarizada. Un fallo aquí no invalida la carga, que ya quedó guardada."""
+    try:
+        pub = publicacion.publicar(engine, spec, orden=list(dict.fromkeys(k for r in records[:1000] for k in r)))
+    except Exception as e:  # noqa: BLE001
+        log.error("falló la publicación de %s: %s", spec.name, e)
+        result.publish_error = f"{type(e).__name__}: {e}"
+        return
+    if pub:
+        result.published, result.published_rows = pub.tabla, pub.filas
 
 
 # --------------------------------------------------------------- comparación
@@ -138,7 +155,7 @@ def extract(spec: SourceSpec, cursor: str | None, client: httpx.Client | None = 
 
 # ---------------------------------------------------------------------- motor
 def run_source(engine: Engine, spec: SourceSpec, client: httpx.Client | None = None,
-               full_refresh: bool = False) -> RunResult:
+               full_refresh: bool = False, publish: bool = True) -> RunResult:
     run_id = uuid.uuid4()
     with engine.begin() as conn:
         catalog.register_source(conn, spec)
@@ -202,6 +219,8 @@ def run_source(engine: Engine, spec: SourceSpec, client: httpx.Client | None = N
             catalog.finish_run(conn, run_id, result.status, extracted=result.extracted,
                                loaded=result.loaded, cursor_after=result.cursor_after,
                                schema_version=version)
+        if publish and result.status in publicacion.APROBADAS:
+            _publicar(engine, spec, records, result)
         return result
     except Exception as e:  # noqa: BLE001 — cualquier falla queda registrada en el catálogo
         log.error("falló la ingesta de %s: %s", spec.name, e)

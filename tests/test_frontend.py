@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pytest
 
-from plataforma.consultas import ConsultaInvalida, Filtro, _armar
+from plataforma.consultas import ConsultaInvalida, Filtro, _armar, _seleccion
 from plataforma.web.datos import normalizar, titulo_y_descripcion
 from plataforma.web.rutas import (
     _destino_seguro,
@@ -47,6 +47,14 @@ def test_armar_valida_y_parametriza():
 def test_armar_rechaza_columnas_y_operadores_desconocidos(filtros, orden):
     with pytest.raises(ConsultaInvalida):
         _armar(COLS, filtros, orden)
+
+
+def test_seleccion_de_columnas_valida_contra_las_reales():
+    assert _seleccion(COLS, None) == ("*", COLS)
+    lista, visibles = _seleccion(COLS, ["fecha", "precio", "fecha"])
+    assert lista == '"precio", "fecha"' and [c["name"] for c in visibles] == ["precio", "fecha"]   # orden de la tabla
+    with pytest.raises(ConsultaInvalida):
+        _seleccion(COLS, ['precio"; DROP TABLE x; --'])
 
 
 def test_formatos_de_colombia():

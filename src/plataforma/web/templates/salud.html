@@ -68,6 +68,53 @@
       </div>
       {% endif %}
     </div>
+      {% if s.tipos %}
+      <details class="salud-datos">
+        <summary>Salud de los datos por tipo
+          <span class="tenue">{% for g in s.tipos %}{{ g.tipo }} {{ g.columnas | length }}{% if not loop.last %} · {% endif %}{% endfor %}</span></summary>
+        {% for g in s.tipos %}
+        <section class="grupo-tipo" aria-label="Columnas de tipo {{ g.tipo }}">
+          <header>
+            <h4>{{ g.tipo }}</h4>
+            <span class="tenue">{{ g.columnas | length }} {{ "columna" if g.columnas | length == 1 else "columnas" }}
+              · {{ g.vacios_promedio | pct }} de vacíos en promedio
+              · {{ g.con_vacios }} con vacíos</span>
+          </header>
+          <div class="tabla-scroll">
+            <table>
+              <thead><tr>
+                <th scope="col">Columna</th><th scope="col">Completitud</th><th scope="col">Vacíos</th>
+                {% if g.tipo == "Numéricos" %}<th scope="col">Mínimo</th><th scope="col">Mediana</th><th scope="col">Media</th><th scope="col">Máximo</th>
+                {% elif g.tipo == "Fechas" %}<th scope="col">Desde</th><th scope="col">Hasta</th>
+                {% else %}<th scope="col">Valores distintos</th>{% endif %}
+              </tr></thead>
+              <tbody>
+                {% for c in g.columnas %}
+                <tr>
+                  <td class="mono">{{ c.column_name }}</td>
+                  <td><div class="barra-completitud" role="img" aria-label="{{ (1 - c.null_rate) | pct }} de valores presentes"><i style="width: {{ ((1 - c.null_rate) * 100) | round(1) }}%"></i></div></td>
+                  <td class="n">{{ c.null_rate | pct }}</td>
+                  {% if g.tipo == "Numéricos" %}
+                  <td class="n">{{ (c.min_value | float) | compacto if c.min_value is not none else "—" }}</td>
+                  <td class="n">{{ c.p50 | compacto }}</td>
+                  <td class="n">{{ c.mean | compacto }}</td>
+                  <td class="n">{{ (c.max_value | float) | compacto if c.max_value is not none else "—" }}</td>
+                  {% elif g.tipo == "Fechas" %}
+                  <td>{{ c.min_value[:10] if c.min_value else "—" }}</td>
+                  <td>{{ c.max_value[:10] if c.max_value else "—" }}</td>
+                  {% else %}
+                  <td class="n">{{ c.n_distinct | num }}</td>
+                  {% endif %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        {% endfor %}
+        <p class="tenue nota">Calculado sobre los registros de la última carga, tal como llegaron de la fuente.</p>
+      </details>
+      {% endif %}
   </article>
   {% else %}
   <div class="vacio-grande"><b>No hay fuentes registradas.</b>

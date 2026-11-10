@@ -114,6 +114,38 @@ CREATE TABLE IF NOT EXISTS meta.construcciones (
 -- 'dbt' = modelo curado; 'plataforma' = publicación automática tras cada carga.
 -- La publicación automática nunca sobrescribe una tabla que construye dbt.
 ALTER TABLE meta.construcciones ADD COLUMN IF NOT EXISTS construida_por text NOT NULL DEFAULT 'dbt';
+-- Filas al construirse: el catálogo las muestra sin contar cada tabla en cada visita.
+-- NULL en tablas construidas antes de existir la columna (el catálogo las cuenta una vez).
+ALTER TABLE meta.construcciones ADD COLUMN IF NOT EXISTS filas bigint;
+-- Nombre de cada columna en la fuente -> nombre con que se publicó (solo publicación automática).
+ALTER TABLE meta.construcciones ADD COLUMN IF NOT EXISTS columnas jsonb;
+
+-- Evaluación de calidad según MinTIC: una fila por carga y etapa (antes y después de la limpieza).
+CREATE TABLE IF NOT EXISTS meta.calidad_mintic (
+    run_id      uuid NOT NULL REFERENCES meta.runs(run_id),
+    source_name text NOT NULL,
+    etapa       text NOT NULL CHECK (etapa IN ('antes', 'despues')),
+    score       numeric(5, 1) NOT NULL,
+    nivel       text NOT NULL,
+    reporte     jsonb NOT NULL,          -- ReporteCalidad
+    comparativo jsonb,                   -- ReporteComparativo, en la fila 'despues'
+    creada_en   timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (run_id, etapa)
+);
+CREATE INDEX IF NOT EXISTS calidad_mintic_fuente_idx ON meta.calidad_mintic (source_name, creada_en DESC);
+
+-- Bitácora de cada dataset: notas sobre los datos, su tratamiento, la limpieza y los cargues.
+CREATE TABLE IF NOT EXISTS meta.bitacora (
+    id         bigserial PRIMARY KEY,
+    tabla      text NOT NULL,            -- esquema.tabla
+    categoria  text NOT NULL CHECK (categoria IN ('datos', 'tratamiento', 'limpieza', 'cargue')),
+    texto      text NOT NULL,
+    autor      text NOT NULL,
+    automatica boolean NOT NULL DEFAULT false,   -- la escribió la plataforma al cargar
+    creada_en  timestamptz NOT NULL DEFAULT now(),
+    editada_en timestamptz
+);
+CREATE INDEX IF NOT EXISTS bitacora_tabla_idx ON meta.bitacora (tabla, creada_en DESC);
 
 -- Conversiones tolerantes para la publicación automática: un valor que no cumple el
 -- formato queda NULL en vez de abortar la construcción de toda la tabla.

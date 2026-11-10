@@ -140,23 +140,39 @@ def _valor_invalido(e: DBAPIError) -> ConsultaInvalida | None:
     return None
 
 
+def _seleccion(cols: list[dict[str, Any]], solo_columnas: Sequence[str] | None) -> tuple[str, list[dict[str, Any]]]:
+    """Lista del SELECT y columnas visibles. Los nombres pedidos se validan contra los reales."""
+    if not solo_columnas:
+        return "*", cols
+    pedidas = list(dict.fromkeys(solo_columnas))
+    existentes = {c["name"] for c in cols}
+    if desconocidas := [c for c in pedidas if c not in existentes]:
+        raise ConsultaInvalida(f"columna desconocida: {desconocidas[0]}")
+    visibles = [c for c in cols if c["name"] in set(pedidas)]          # en el orden de la tabla
+    return ", ".join(quote_ident(c["name"]) for c in visibles), visibles
+
+
 def leer_tabla(conn: Connection, capa: str, nombre: str, filtros: Sequence[Filtro] = (),
-               orden: str | None = None, limite: int = 100, desplazamiento: int = 0) -> dict[str, Any]:
+               orden: str | None = None, limite: int = 100, desplazamiento: int = 0,
+               solo_columnas: Sequence[str] | None = None) -> dict[str, Any]:
+    """Filas de un dataset. `solo_columnas` limita las columnas devueltas; los filtros y el
+    orden pueden usar cualquier columna de la tabla."""
     cols = columnas(conn, capa, nombre)
     if not cols:
         raise TablaNoExiste(f"dataset {capa}.{nombre} no existe")
     where, order, params = _armar(cols, filtros, orden)
+    lista, visibles = _seleccion(cols, solo_columnas)
     tabla = _tabla(capa, nombre)
     try:
         total = conn.execute(text(f"SELECT count(*) FROM {tabla}{where}"), params).scalar_one()
         data = [dict(r) for r in conn.execute(
-            text(f"SELECT * FROM {tabla}{where}{order} LIMIT :_l OFFSET :_o"),
+            text(f"SELECT {lista} FROM {tabla}{where}{order} LIMIT :_l OFFSET :_o"),
             {**params, "_l": limite, "_o": desplazamiento}).mappings()]
     except DBAPIError as e:
         if (err := _valor_invalido(e)) is not None:
             raise err from None
         raise
-    return {"layer": capa, "name": nombre, "columns": cols, "filters": [f.como_texto() for f in filtros],
+    return {"layer": capa, "name": nombre, "columns": visibles, "filters": [f.como_texto() for f in filtros],
             "total": total, "limit": limite, "offset": desplazamiento, "data": data}
 
 

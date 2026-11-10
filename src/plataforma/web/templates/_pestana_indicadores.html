@@ -1,0 +1,34 @@
+{# Indicadores sugeridos según el esquema y el tema del dataset. #}
+<div class="panel-in">
+  <p class="tenue">Sugerencias calculadas a partir de las columnas, sus tipos y el tema del dataset
+    {%- if kpi.temas %} (<b>{{ kpi.temas | join(", ") }}</b>){% endif %}. Cada una trae su consulta SQL lista para copiar;
+    son un punto de partida, no un tablero definitivo.</p>
+  {% if kpi.personales %}
+  <p class="tenue nota">No se usan para agrupar las columnas con datos personales:
+    <span class="mono">{{ kpi.personales | join(", ") }}</span>.</p>
+  {% endif %}
+
+  {% for grupo, sugerencias in kpi.grupos.items() %}
+  <section class="encabezado">
+    <h3>{{ grupo }}</h3>
+    <div class="indicadores">
+      {% for s in sugerencias %}
+      {% set id = "kpi-" ~ loop.index ~ "-" ~ (grupo | replace(" ", "") | replace(":", "") | lower) %}
+      <article class="indicador">
+        <b>{{ s.nombre }}</b>
+        <p>{{ s.porque }}</p>
+        <div class="formula"><span>Cómo se calcula</span>{{ s.formula }}</div>
+        {% if s.columnas %}<div class="datos-clave">{% for c in s.columnas %}<span class="chip mono">{{ c }}</span>{% endfor %}</div>{% endif %}
+        <details>
+          <summary>Consulta SQL</summary>
+          <pre id="{{ id }}">{{ s.sql }}</pre>
+          <button class="btn chico" type="button" data-copiar="{{ id }}">Copiar</button>
+        </details>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% else %}
+  <div class="vacio-grande"><b>No hay suficientes columnas para sugerir indicadores.</b></div>
+  {% endfor %}
+</div>

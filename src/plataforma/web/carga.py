@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import re
-import shutil
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,7 @@ from ..publicacion import despublicar, nombre_columna
 from ..quality.profiling import infer_schema
 from ..registry.loader import RegistryError, load_file
 from ..registry.models import SLUG, FileConnection, SourceSpec
+from ..seguridad import url_no_permitida
 from ..storage import catalog
 from ..storage.db import get_engine, quote_ident
 from . import tareas
@@ -38,6 +40,16 @@ TIPOS = {"numeric": "número", "datetime": "fecha", "text": "texto", "boolean": 
          "object": "objeto JSON", "unknown": "sin datos"}
 SEPARADORES = {",": "coma (,)", ";": "punto y coma (;)", "\t": "tabulador", "|": "barra (|)"}
 CODIFICACIONES = {"utf-8-sig": "UTF-8", "latin-1": "Latin-1 (Excel antiguo)"}
+# Categorías del Portal Nacional de Datos Abiertos (datos.gov.co)
+CATEGORIAS = ["Agricultura y Desarrollo Rural", "Ambiente y Desarrollo Sostenible", "Ciencia, Tecnología e Innovación",
+              "Comercio, Industria y Turismo", "Cultura", "Deporte y Recreación", "Economía y Finanzas", "Educación",
+              "Estadísticas Nacionales", "Función Pública", "Gastos Gubernamentales", "Hacienda y Crédito Público",
+              "Inclusión Social y Reconciliación", "Justicia y Derecho", "Mapas Nacionales", "Minas y Energía",
+              "Ordenamiento Territorial", "Organismos de Control", "Participación ciudadana",
+              "Presupuestos Gubernamentales", "Salud y Protección Social", "Seguridad y Defensa", "Trabajo",
+              "Transporte", "Vivienda, Ciudad y Territorio"]
+FRECUENCIAS = ["Diaria", "Semanal", "Quincenal", "Mensual", "Bimestral", "Trimestral", "Cuatrimestral", "Semestral",
+               "Anual"]
 
 
 class SinPermiso(Exception):
@@ -74,6 +86,26 @@ def _pendiente(nombre: str) -> dict[str, Any] | None:
         return None
     ruta = _rutas()[2] / f"{nombre}.json"
     return json.loads(ruta.read_text(encoding="utf-8")) if ruta.exists() else None
+
+
+def _guardar_subida(archivo: UploadFile, destino: Path) -> bool:
+    """Copia el archivo subido respetando PLATAFORMA_MAX_SUBIDA_MB. Escribe primero a un temporal
+    en la misma carpeta y solo al final lo pone en su lugar: si se pasa del límite o la subida
+    falla, el archivo que había (al reemplazar) queda intacto. Devuelve False si supera el límite."""
+    limite, total = get_settings().max_subida_mb * 1024 * 1024, 0
+    fd, nombre_tmp = tempfile.mkstemp(dir=destino.parent, prefix=".subida-", suffix=destino.suffix)
+    tmp = Path(nombre_tmp)
+    try:
+        with os.fdopen(fd, "wb") as salida:
+            while bloque := archivo.file.read(1024 * 1024):
+                total += len(bloque)
+                if total > limite:
+                    return False
+                salida.write(bloque)
+        os.replace(tmp, destino)
+        return True
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def _guardar_pendiente(datos: dict[str, Any]) -> None:
@@ -115,6 +147,8 @@ def _spec_api(p: dict[str, Any], max_records: int | None = None) -> SourceSpec:
 def _muestra(p: dict[str, Any]) -> list[dict[str, Any]]:
     if p["tipo"] == "file":
         return leer_muestra(_rutas()[1] / p["archivo"], p["formato"], p["opciones"])
+    if motivo := url_no_permitida(p["url"]):    # se resuelve de nuevo: el DNS pudo cambiar
+        raise ValueError(motivo)
     spec = _spec_api(p, max_records=50)
     if hasattr(spec.pagination, "page_size"):
         spec = spec.model_copy(update={"pagination": spec.pagination.model_copy(update={"page_size": 50})})
@@ -160,6 +194,10 @@ def _yaml_fuente(p: dict[str, Any], f: dict[str, Any]) -> dict[str, Any]:
                        {"column": llave, "rule": "unique", "severity": "warn"}]
         checks += [{"column": c, "rule": "not_null", "severity": "warn"} for c in obligatorias if c != llave]
         d["contract"] = {"required_columns": requeridas, "checks": checks}
+    if metadatos := {k: v for k, v in (f.get("metadatos") or {}).items() if v}:
+        d["metadata"] = metadatos
+    if f.get("vista"):
+        d["preview_columns"] = list(f["vista"])
     return d
 
 
@@ -200,15 +238,9 @@ def cargar_archivo(request: Request, archivo: UploadFile = File(...), titulo: st
         return _error_inicio(request, f"Ya existe una fuente llamada «{nombre}». Usa otro título, o reemplaza su "
                                       "archivo desde la sección Salud.", valores)
     _, landing, _ = _rutas()
-    destino, limite, total = landing / f"{nombre}{ext}", get_settings().max_subida_mb * 1024 * 1024, 0
-    with destino.open("wb") as salida:
-        while bloque := archivo.file.read(1024 * 1024):
-            total += len(bloque)
-            if total > limite:
-                salida.close()
-                destino.unlink(missing_ok=True)
-                return _error_inicio(request, f"El archivo supera el máximo de {get_settings().max_subida_mb} MB.", valores)
-            salida.write(bloque)
+    destino = landing / f"{nombre}{ext}"
+    if not _guardar_subida(archivo, destino):
+        return _error_inicio(request, f"El archivo supera el máximo de {get_settings().max_subida_mb} MB.", valores)
     formato = EXTENSIONES[ext]
     opciones = detectar_csv(destino) if formato == "csv" else {}
     _guardar_pendiente({"nombre": nombre, "titulo": titulo, "descripcion": descripcion.strip(),
@@ -225,8 +257,8 @@ def cargar_api(request: Request, titulo: str = Form(...), url: str = Form(...), 
                max_registros: int = Form(5000), auth_header: str = Form(""), auth_variable: str = Form(""),
                _a: None = Depends(admin)):
     valores = {k: v for k, v in locals().items() if k not in ("request", "_a")}
-    if not re.match(r"^https?://", url.strip()):
-        return _error_inicio(request, "La dirección de la API debe empezar por http:// o https://.", valores)
+    if motivo := url_no_permitida(url):
+        return _error_inicio(request, motivo, valores)
     if auth_variable and not re.match(r"^[A-Z][A-Z0-9_]*$", auth_variable):
         return _error_inicio(request, "La variable de entorno debe ir en MAYÚSCULAS, con números o guion bajo.", valores)
     nombre = nombre_fuente(titulo)
@@ -268,7 +300,8 @@ def _render_revisar(request: Request, p: dict[str, Any], error: str | None, stat
     return render(request, "revisar.html", status_code, seccion="cargar",
                   con_sesion=hay_sesion(request), p=p, muestra=muestra[:10],
                   columnas=columnas, error=error, error_lectura=error_lectura,
-                  separadores=SEPARADORES, codificaciones=CODIFICACIONES)
+                  separadores=SEPARADORES, codificaciones=CODIFICACIONES, categorias=CATEGORIAS,
+                  frecuencias=FRECUENCIAS)
 
 
 @router.get("/cargar/cancelar/{nombre}")
@@ -285,11 +318,21 @@ def cancelar(nombre: str, _a: None = Depends(admin)):
 # ---------------------------------------------------------------- paso 3: publicar
 @router.post("/cargar/publicar/{nombre}")
 def publicar(request: Request, nombre: str, llave: str = Form(""), obligatorias: list[str] = Form([]),
-             cursor: str = Form(""), valor_inicial: str = Form(""), _a: None = Depends(admin)):
+             cursor: str = Form(""), valor_inicial: str = Form(""), vista: list[str] = Form([]),
+             col: list[str] = Form([]), desc: list[str] = Form([]), entidad: str = Form(""),
+             correo: str = Form(""), categoria: str = Form(""), frecuencia: str = Form(""),
+             cobertura: str = Form(""), licencia: str = Form(""), _a: None = Depends(admin)):
     p = _pendiente(nombre)
     if p is None:
         return RedirectResponse("/cargar", 303)
-    f = {"llave": llave, "obligatorias": obligatorias, "cursor": cursor, "valor_inicial": valor_inicial}
+    descripciones = {c: d.strip() for c, d in zip(col, desc, strict=False) if d.strip()}
+    # la licencia viene diligenciada por defecto: sola no cuenta como «el usuario llenó los metadatos»
+    otros = {"publisher": entidad.strip(), "contact_email": correo.strip(), "category": categoria.strip(),
+             "update_frequency": frecuencia.strip(), "coverage": cobertura.strip()}
+    metadatos = otros | {"license": licencia.strip() if any(otros.values()) else "",
+                         "column_descriptions": descripciones}
+    f = {"llave": llave, "obligatorias": obligatorias, "cursor": cursor, "valor_inicial": valor_inicial,
+         "vista": vista, "metadatos": metadatos}
     fuentes, _, pendientes = _rutas()
     ruta = fuentes / f"{nombre}.yml"
     if ruta.exists():
@@ -349,8 +392,13 @@ def reemplazar_archivo(request: Request, nombre: str, archivo: UploadFile = File
         return render(request, "error.html", 400, titulo="Formato distinto", seccion="salud",
                       con_sesion=hay_sesion(request),
                       mensaje=f"El archivo nuevo debe tener la misma extensión que el original ({destino.suffix}).")
-    with destino.open("wb") as salida:
-        shutil.copyfileobj(archivo.file, salida, 1024 * 1024)
+    if nombre in tareas.en_curso():
+        raise HTTPException(409, "La fuente se está cargando; espera a que termine.")
+    if not _guardar_subida(archivo, destino):
+        return render(request, "error.html", 413, titulo="Archivo demasiado grande", seccion="salud",
+                      con_sesion=hay_sesion(request),
+                      mensaje=f"El archivo supera el máximo de {get_settings().max_subida_mb} MB. "
+                              "El archivo anterior se conserva.")
     tareas.lanzar(nombre)
     return RedirectResponse(f"/cargar/progreso/{nombre}", 303)
 

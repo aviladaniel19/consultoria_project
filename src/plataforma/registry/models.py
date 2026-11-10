@@ -140,6 +140,19 @@ class Contract(_Strict):
     on_schema_change: Literal["record", "fail"] = "record"
 
 
+# ----------------------------------------------------------------------- metadatos
+class Metadata(_Strict):
+    """Metadatos que pide el portal datos.gov.co (esquema DCAT). Los usa el motor de calidad MinTIC."""
+    publisher: str | None = Field(default=None, description="Entidad productora de los datos")
+    contact_email: str | None = Field(default=None, description="Correo institucional de contacto")
+    category: str | None = Field(default=None, description="Categoría o sector (no 'Otros')")
+    update_frequency: str | None = Field(default=None, description="Diaria, Semanal, Mensual, Trimestral, Anual…")
+    coverage: str | None = Field(default=None, description="Cobertura geográfica: Nacional, un departamento…")
+    license: str | None = Field(default=None, description="Licencia de uso; el portal usa CC BY-SA 4.0")
+    column_descriptions: dict[str, str] = Field(
+        default_factory=dict, description="Descripción de cada columna, por su nombre en la fuente")
+
+
 # -------------------------------------------------------------------------- fuente
 class SourceSpec(_Strict):
     name: str = Field(description="Identificador único: minúsculas, números y guion bajo")
@@ -156,6 +169,11 @@ class SourceSpec(_Strict):
     incremental: Incremental | None = None
     primary_key: list[str] = Field(default_factory=list)
     contract: Contract = Field(default_factory=Contract)
+    metadata: Metadata = Field(default_factory=Metadata)
+    preview_columns: list[str] = Field(
+        default_factory=list,
+        description="Columnas (nombre en la fuente) que muestra la vista previa. Vacío: llave y obligatorias, "
+                    "o todas si no hay.")
 
     @field_validator("name")
     @classmethod

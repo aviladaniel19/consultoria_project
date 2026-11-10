@@ -9,6 +9,7 @@ from pathlib import Path
 import httpx
 import pytest
 import respx
+import yaml
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, make_url, text
 from typer.testing import CliRunner
@@ -18,6 +19,7 @@ from plataforma.cli import app as cli_app
 from plataforma.config import get_settings
 from plataforma.ingestion.engine import run_source
 from plataforma.registry.models import SourceSpec
+from plataforma.seguridad import intentos_clave
 from plataforma.storage.db import bootstrap, get_engine
 
 URL_DB = os.environ.get("PLATAFORMA_TEST_DATABASE_URL")
@@ -53,6 +55,7 @@ def servir(datos):
 def api_abierta(monkeypatch):
     # que las claves de un .env local no cambien el resultado de las pruebas
     monkeypatch.setattr(get_settings(), "api_keys", "")
+    intentos_clave.reiniciar()               # el limitador de intentos vive en memoria del proceso
 
 
 @pytest.fixture(scope="module")
@@ -241,6 +244,13 @@ def test_frontend_y_filtros(engine, monkeypatch):
     assert r.headers["location"] == "/" and "httponly" in r.headers["set-cookie"].lower()
     assert anonimo.get("/explorar").status_code == 200
     assert anonimo.get("/static/css/app.css").status_code == 200
+
+    # tras 10 claves incorrectas desde la misma IP, ni la correcta entra por un rato
+    for _ in range(10):
+        anonimo.post("/ingresar", data={"clave": "mala"}, follow_redirects=False)
+    r = anonimo.post("/ingresar", data={"clave": "k-front"}, follow_redirects=False)
+    assert r.status_code == 429 and int(r.headers["retry-after"]) > 0
+    assert cli.get("/sources", headers={"X-API-Key": "k-front"}).status_code == 429
     app.dependency_overrides.clear()
     with engine.begin() as c:
         c.execute(text("DELETE FROM analitico.demo WHERE x IS NULL OR x = 30"))
@@ -295,7 +305,14 @@ def test_carga_desde_la_web(engine, tmp_path, monkeypatch):
     assert r.headers["location"] == "/cargar/revisar/flores"
     revision = cli.get("/cargar/revisar/flores").text
     assert "largo_del_sepalo_cm" in revision and "número" in revision          # ; y coma decimal detectados
-    r = cli.post("/cargar/publicar/flores", data={"llave": "", "obligatorias": ["Especie"]}, follow_redirects=False)
+    assert "En la vista previa" in revision and "Metadatos para datos abiertos" in revision
+    columnas = ["Largo del sépalo (cm)", "Ancho del sépalo (cm)", "Largo del pétalo (cm)", "Ancho del pétalo (cm)",
+                "Especie"]
+    r = cli.post("/cargar/publicar/flores", follow_redirects=False, data={
+        "llave": "", "obligatorias": ["Especie"], "vista": ["Especie", "Largo del pétalo (cm)"],
+        "col": columnas, "desc": ["", "", "Largo del pétalo, medido en centímetros", "", "Especie de la flor (Iris)"],
+        "entidad": "Universidad Santo Tomás", "correo": "datos@usta.edu.co", "categoria": "Educación",
+        "frecuencia": "Anual", "cobertura": "Nacional", "licencia": "CC BY-SA 4.0"})
     assert r.headers["location"] == "/cargar/progreso/flores"
     t = tareas.resumen(tareas.esperar("flores"))
     assert (t["estado"], t["cargados"], t["publicada"], t["filas_publicadas"]) == (
@@ -308,6 +325,68 @@ def test_carga_desde_la_web(engine, tmp_path, monkeypatch):
                               " AND table_name = 'flores' AND column_name = 'largo_del_sepalo_cm'")).scalar()
         assert tipo == "numeric"
     assert "Flores" in cli.get("/").text and "#biologia" in cli.get("/").text
+    spec = yaml.safe_load((tmp_path / "sources" / "flores.yml").read_text(encoding="utf-8"))
+    assert spec["preview_columns"] == ["Especie", "Largo del pétalo (cm)"]
+    assert spec["metadata"]["publisher"] == "Universidad Santo Tomás" and len(spec["metadata"]["column_descriptions"]) == 2
+
+    # vista previa: solo las columnas seleccionadas en el cargue, y con filtros
+    hx = {"HX-Request": "true"}
+    vista = cli.get("/datos/estandarizado/flores").text
+    encabezados = vista.split("<thead>")[1].split("</thead>")[0]
+    assert "especie" in encabezados and "largo_del_petalo_cm" in encabezados
+    assert "largo_del_sepalo_cm" not in encabezados and "cargado_en" not in encabezados
+    assert "<b>2</b> de 7 columnas (las seleccionadas en el cargue)" in vista
+    filtrada = cli.get("/datos/estandarizado/flores/vista", headers=hx,
+                       params={"fc": "especie", "fo": "eq", "fv": "setosa"}).text
+    assert "<b>50</b>" in filtrada and "que cumplen los filtros" in filtrada and "versicolor" not in filtrada
+    assert "fc=especie&amp;fo=eq&amp;fv=setosa" in filtrada                     # el enlace al explorador los conserva
+    assert "role=\"alert\"" in cli.get("/datos/estandarizado/flores/vista", headers=hx,
+                                        params={"fc": "largo_del_petalo_cm", "fo": "gt", "fv": "abc"}).text
+    assert "largo_del_sepalo_cm" in cli.get("/explorar/estandarizado/flores").text    # el explorador tiene todas
+    with engine.connect() as c:      # la descripción del cargue queda como comentario de la columna
+        assert "medido en centímetros" in c.execute(text(
+            "SELECT col_description('estandarizado.flores'::regclass, 3)")).scalar()
+
+    # salud de los datos, agrupada por tipo de dato
+    salud = cli.get("/salud").text
+    assert "Salud de los datos por tipo" in salud and "Numéricos 4 · Texto 1" in salud
+    assert salud.index('aria-label="Columnas de tipo Numéricos"') < salud.index('aria-label="Columnas de tipo Texto"')
+
+    # motor de calidad MinTIC: reporte antes y después de la limpieza, con comparativo
+    with engine.connect() as c:
+        etapas = dict(c.execute(text("SELECT etapa, score FROM meta.calidad_mintic WHERE source_name = 'flores'")).all())
+    assert set(etapas) == {"antes", "despues"}
+    rep = cli.get("/sources/flores/calidad-mintic").json()
+    assert rep["despues"]["nivel_cumplimiento"] in ("Básico", "Avanzado", "Excelente")
+    assert rep["comparativo"]["filas_antes"] == 150 and rep["comparativo"]["filas_despues"] == 150
+    codigos = {h["codigo"] for h in rep["despues"]["hallazgos_errores"]}
+    assert "ERR008_3" in codigos and "ERR002" not in codigos       # 3 columnas sin describir; metadatos completos
+    assert rep["comparativo"]["score_despues"] == pytest.approx(float(etapas["despues"]))
+    calidad = cli.get("/datos/estandarizado/flores/calidad", headers=hx).text
+    assert "Calidad según los lineamientos de MinTIC" in calidad and "ERR008_3" in calidad
+    assert "Calidad según MinTIC" in cli.get("/cargar/progreso/flores").text
+    assert cli.get("/sources/no_existe/calidad-mintic").status_code == 404
+
+    # indicadores sugeridos según el esquema
+    kpis = cli.get("/datos/estandarizado/flores/indicadores", headers=hx).text
+    assert "Distribución por especie" in kpis and "Total de registros" in kpis and "estandarizado.flores" in kpis
+
+    # bitácora: nota automática del cargue, agregar, validar y editar
+    bitacora = cli.get("/datos/estandarizado/flores/bitacora", headers=hx).text
+    assert "Cargue de 150 registros" in bitacora and "Calidad MinTIC" in bitacora and "Agregar una nota" in bitacora
+    r = cli.post("/datos/estandarizado/flores/bitacora", headers=hx,
+                 data={"categoria": "limpieza", "autor": "Daniel", "texto": "Se excluyen las flores sin especie."})
+    assert "Se excluyen las flores sin especie." in r.text and "Decisión de limpieza" in r.text
+    assert "Elige un tipo" in cli.post("/datos/estandarizado/flores/bitacora", headers=hx,
+                                       data={"categoria": "otra", "autor": "D", "texto": "x"}).text
+    with engine.connect() as c:
+        manual, auto = c.execute(text("SELECT min(id) FILTER (WHERE NOT automatica), min(id) FILTER (WHERE automatica)"
+                                      " FROM meta.bitacora WHERE tabla = 'estandarizado.flores'")).one()
+    assert 'name="texto"' in cli.get(f"/bitacora/nota/{manual}", headers=hx).text
+    r = cli.post(f"/bitacora/nota/{manual}", headers=hx,
+                 data={"categoria": "tratamiento", "autor": "Daniel", "texto": "Texto corregido."})
+    assert "Texto corregido." in r.text and "editada el" in r.text and "Tratamiento aplicado" in r.text
+    assert cli.post(f"/bitacora/nota/{auto}", data={"categoria": "datos", "autor": "x", "texto": "y"}).status_code == 404
 
     # una fuente con el mismo nombre se rechaza; el reemplazo exige la misma extensión
     with ejemplo.open("rb") as fh:
@@ -317,6 +396,17 @@ def test_carga_desde_la_web(engine, tmp_path, monkeypatch):
     with ejemplo.open("rb") as fh:
         cli.post("/fuentes/flores/archivo", files={"archivo": (ejemplo.name, fh)})
     assert tareas.resumen(tareas.esperar("flores"))["filas_publicadas"] == 150      # sin llave: reemplaza
+    with engine.connect() as c:       # el catálogo lee las filas guardadas al publicar, sin contarlas
+        assert c.execute(text("SELECT filas FROM meta.construcciones WHERE tabla = 'estandarizado.flores'"))\
+            .scalar() == 150
+
+    # un reemplazo que supera el máximo se rechaza y deja intacto el archivo anterior
+    original = (tmp_path / "landing" / "flores.csv").read_bytes()
+    monkeypatch.setattr(settings, "max_subida_mb", 0)
+    with ejemplo.open("rb") as fh:
+        assert cli.post("/fuentes/flores/archivo", files={"archivo": (ejemplo.name, fh)}).status_code == 413
+    assert (tmp_path / "landing" / "flores.csv").read_bytes() == original
+    assert not list((tmp_path / "landing").glob(".subida-*"))                         # sin temporales
 
     # con claves, solo la de administración puede cargar
     monkeypatch.setattr(settings, "api_keys", "k-lector")
@@ -327,6 +417,10 @@ def test_carga_desde_la_web(engine, tmp_path, monkeypatch):
     assert lector.get("/cargar").status_code == 403 and 'href="/cargar"' not in lector.get("/").text
     assert jefe.get("/cargar").status_code == 200 and 'href="/cargar"' in jefe.get("/").text
     assert lector.post("/fuentes/flores/eliminar").status_code == 403
+    assert lector.post("/datos/estandarizado/flores/bitacora",
+                       data={"categoria": "datos", "autor": "x", "texto": "y"}).status_code == 403
+    leida = lector.get("/datos/estandarizado/flores/bitacora", headers={"HX-Request": "true"}).text
+    assert "Texto corregido." in leida and "Agregar una nota" not in leida and ">Editar<" not in leida
 
     # eliminar borra configuración, archivo, tablas e historial
     assert jefe.post("/fuentes/flores/eliminar", follow_redirects=False).status_code == 303
@@ -334,6 +428,8 @@ def test_carga_desde_la_web(engine, tmp_path, monkeypatch):
         assert c.execute(text("SELECT to_regclass('estandarizado.flores'), to_regclass('origen.flores')")).one() \
             == (None, None)
         assert c.execute(text("SELECT count(*) FROM meta.runs WHERE source_name = 'flores'")).scalar() == 0
+        assert c.execute(text("SELECT (SELECT count(*) FROM meta.calidad_mintic WHERE source_name = 'flores') + "
+                              "(SELECT count(*) FROM meta.bitacora WHERE tabla = 'estandarizado.flores')")).scalar() == 0
     assert not (tmp_path / "sources" / "flores.yml").exists()
     assert not (tmp_path / "landing" / "flores.csv").exists()
     app.dependency_overrides.clear()

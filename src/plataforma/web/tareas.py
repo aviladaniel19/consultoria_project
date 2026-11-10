@@ -89,4 +89,6 @@ def resumen(t: Tarea) -> dict[str, Any]:
             "extraidos": r.extracted if r else None, "publicada": r.published if r else None,
             "filas_publicadas": r.published_rows if r else None,
             "error_publicacion": r.publish_error if r else None,
-            "reglas": r.failed_checks if r else []}
+            "reglas": r.failed_checks if r else [],
+            "calidad_antes": r.quality_before if r else None, "calidad_despues": r.quality_after if r else None,
+            "nivel_calidad": r.quality_level if r else None}

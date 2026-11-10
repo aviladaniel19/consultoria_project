@@ -1,0 +1,66 @@
+# Fuente creada desde la plataforma web el 2026-11-07 10:21.
+# Se puede editar a mano: es la configuración de la fuente (ver sources/_plantilla.yml).
+
+name: base_credito_hipotecario
+title: Base Credito Hipotecario
+description: Base de gestión que se encuentran en proceso de aprobación de crédito
+  hipotecario
+tags:
+- credito
+- finanzas
+- banca
+type: file
+connection:
+  path: data/landing/base_credito_hipotecario.csv
+  format: csv
+  options:
+    sep: ','
+    encoding: utf-8-sig
+primary_key:
+- numero_de_identificacion
+contract:
+  required_columns:
+  - numero_de_identificacion
+  - caso_no
+  - etapa_consecucion_doc
+  - front_constructora
+  - front_regional
+  - fecha_creacion_proceso
+  - actividad_vence_en
+  - etapa
+  - departamento
+  - ciudad
+  checks:
+  - column: numero_de_identificacion
+    rule: not_null
+    severity: error
+  - column: numero_de_identificacion
+    rule: unique
+    severity: warn
+  - column: caso_no
+    rule: not_null
+    severity: warn
+  - column: etapa_consecucion_doc
+    rule: not_null
+    severity: warn
+  - column: front_constructora
+    rule: not_null
+    severity: warn
+  - column: front_regional
+    rule: not_null
+    severity: warn
+  - column: fecha_creacion_proceso
+    rule: not_null
+    severity: warn
+  - column: actividad_vence_en
+    rule: not_null
+    severity: warn
+  - column: etapa
+    rule: not_null
+    severity: warn
+  - column: departamento
+    rule: not_null
+    severity: warn
+  - column: ciudad
+    rule: not_null
+    severity: warn

@@ -10,10 +10,11 @@ la publicación automática no la toca.
 """
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from psycopg import sql
 from sqlalchemy import Engine, text
@@ -31,6 +32,7 @@ class Publicacion:
     tabla: str
     filas: int
     columnas: int
+    nombres: dict[str, str] = field(default_factory=dict)   # columna en la fuente -> columna publicada
 
 
 def nombre_columna(original: str, usados: set[str]) -> str:
@@ -113,26 +115,31 @@ def publicar(engine: Engine, spec: SourceSpec, orden: Sequence[str] = ()) -> Pub
         cur.execute(sql.SQL("DROP TABLE IF EXISTS {}.{}").format(sql.Identifier(CAPA), nueva))
         cur.execute(sql.SQL("CREATE TABLE {}.{} AS SELECT {} FROM ({}) s").format(
             sql.Identifier(CAPA), nueva, sql.SQL(", ").join(columnas), _seleccion(spec)))
+        filas = cur.rowcount                  # CREATE TABLE AS informa las filas: sin un count(*) aparte
+        # Todo lo que se puede hacer sobre la tabla nueva va antes de tocar la publicada: el DROP
+        # toma un bloqueo exclusivo que dura hasta el commit, y así ese tramo queda en lo mínimo.
+        cur.execute(sql.SQL("COMMENT ON TABLE {}.{} IS {}").format(
+            sql.Identifier(CAPA), nueva, sql.Literal(f"{titulo}\n{spec.description}")))
+        descripciones = spec.metadata.column_descriptions
+        comentarios = {}
+        for c in claves:
+            original = f"Nombre original en la fuente: {c}" if nombres[c] != c else ""
+            if texto := " ".join(p for p in ((descripciones.get(c) or "").strip(), original) if p):
+                comentarios[nombres[c]] = texto
+        comentarios |= {"cargado_en": "Momento en que la plataforma cargó el registro.",
+                        "id_carga": "Carga que trajo el registro (trazabilidad)."}
+        for columna, comentario in comentarios.items():
+            cur.execute(sql.SQL("COMMENT ON COLUMN {}.{}.{} IS {}").format(
+                sql.Identifier(CAPA), nueva, sql.Identifier(columna), sql.Literal(comentario)))
         cur.execute(sql.SQL("DROP TABLE IF EXISTS {}.{}").format(sql.Identifier(CAPA), destino))
         cur.execute(sql.SQL("ALTER TABLE {}.{} RENAME TO {}").format(sql.Identifier(CAPA), nueva, destino))
-        cur.execute(sql.SQL("COMMENT ON TABLE {}.{} IS {}").format(
-            sql.Identifier(CAPA), destino, sql.Literal(f"{titulo}\n{spec.description}")))
-        for c in claves:
-            if nombres[c] != c:
-                cur.execute(sql.SQL("COMMENT ON COLUMN {}.{}.{} IS {}").format(
-                    sql.Identifier(CAPA), destino, sql.Identifier(nombres[c]),
-                    sql.Literal(f"Nombre original en la fuente: {c}")))
-        cur.execute(sql.SQL("COMMENT ON COLUMN {}.{}.cargado_en IS {}").format(
-            sql.Identifier(CAPA), destino, sql.Literal("Momento en que la plataforma cargó el registro.")))
-        cur.execute(sql.SQL("COMMENT ON COLUMN {}.{}.id_carga IS {}").format(
-            sql.Identifier(CAPA), destino, sql.Literal("Carga que trajo el registro (trazabilidad).")))
-        cur.execute(sql.SQL("SELECT count(*) FROM {}.{}").format(sql.Identifier(CAPA), destino))
-        filas = cur.fetchone()[0]
         conn.execute(text("""
-            INSERT INTO meta.construcciones (tabla, construida_en, construida_por) VALUES (:t, now(), 'plataforma')
-            ON CONFLICT (tabla) DO UPDATE SET construida_en = excluded.construida_en, construida_por = 'plataforma'
-        """), {"t": tabla})
-    return Publicacion(tabla=tabla, filas=filas, columnas=len(claves))
+            INSERT INTO meta.construcciones (tabla, construida_en, construida_por, filas, columnas)
+            VALUES (:t, now(), 'plataforma', :f, CAST(:c AS jsonb))
+            ON CONFLICT (tabla) DO UPDATE SET construida_en = excluded.construida_en,
+                construida_por = 'plataforma', filas = excluded.filas, columnas = excluded.columnas
+        """), {"t": tabla, "f": filas, "c": json.dumps(nombres, ensure_ascii=False)})
+    return Publicacion(tabla=tabla, filas=filas, columnas=len(claves), nombres=nombres)
 
 
 def despublicar(engine: Engine, nombre: str) -> None:

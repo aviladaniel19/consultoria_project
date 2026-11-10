@@ -1,0 +1,17 @@
+{# Formulario para editar una nota en su lugar. #}
+<form class="nota-bitacora formulario" id="nota-{{ n.id }}" hx-post="/bitacora/nota/{{ n.id }}" hx-target="this" hx-swap="outerHTML">
+  {% if error %}<div class="alerta" role="alert">{{ error }}</div>{% endif %}
+  <div class="fila-2">
+    <label>Tipo de nota
+      <select name="categoria">
+        {% for clave, etiqueta in CATEGORIAS_BITACORA.items() %}<option value="{{ clave }}" {% if clave == n.categoria %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Quién escribe <input class="campo" name="autor" required maxlength="80" value="{{ n.autor }}"></label>
+  </div>
+  <label>Nota <textarea class="campo" name="texto" rows="3" required maxlength="4000">{{ n.texto }}</textarea></label>
+  <div class="botonera">
+    <button class="btn chico primario" type="submit">Guardar cambios</button>
+    <button class="btn chico" type="button" hx-get="/bitacora/nota/{{ n.id }}?ver=1" hx-target="#nota-{{ n.id }}" hx-swap="outerHTML">Cancelar</button>
+  </div>
+</form>

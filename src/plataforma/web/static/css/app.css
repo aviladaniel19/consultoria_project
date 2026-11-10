@@ -441,3 +441,50 @@ select:focus, .campo:focus { border-color: var(--acento); outline: none; box-sha
 label.btn { cursor: pointer; }
 input::placeholder, textarea::placeholder { color: var(--tenue); opacity: 0.75; }
 .opcion-carga > .btn.chico { align-self: flex-start; }
+
+
+/* ------------------------------------------------- salud de los datos por tipo */
+.salud-datos { grid-column: 1 / -1; border-top: 1px solid var(--linea); padding-top: 12px; }
+.salud-datos > summary, .mintic details > summary, .indicador summary, .metadatos-abiertos > summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; color: var(--acento); }
+.salud-datos > summary .tenue { font-weight: 400; margin-left: 8px; }
+.salud-datos[open] { display: flex; flex-direction: column; gap: 16px; }
+.grupo-tipo { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.grupo-tipo header { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 0.85rem; }
+.grupo-tipo h4 { font-family: var(--f-titulo); font-size: 1.05rem; }
+.barra-completitud, .barra-puntaje { height: 8px; min-width: 90px; border-radius: 4px; background: var(--neutro-suave); overflow: hidden; }
+.barra-completitud i, .barra-puntaje i { display: block; height: 100%; background: var(--ok); }
+.barra-puntaje.medio i { background: var(--aviso); }
+.barra-puntaje.bajo i { background: var(--error); }
+
+/* ---------------------------------------------------------------- calidad MinTIC */
+.mintic { background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); padding: 16px 18px; margin-bottom: 18px; }
+.mintic h4 { font-size: 0.98rem; }
+.mintic-resumen { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 24px; align-items: center; }
+@media (max-width: 640px) { .mintic-resumen { grid-template-columns: minmax(0, 1fr); } }
+.puntaje { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.puntaje b { font-family: var(--f-titulo); font-size: 3rem; line-height: 1; }
+.puntaje > span:not(.chip) { font-size: 0.8rem; color: var(--tenue); }
+.chip.neutro { background: var(--neutro-suave); color: var(--neutro); }
+td.sube { color: var(--ok); } td.baja { color: var(--error); }
+td.texto { white-space: normal; min-width: 180px; max-width: 420px; font-size: 0.86rem; }
+.mintic ul { margin: 8px 0 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+
+/* ------------------------------------------------------------------- indicadores */
+.indicadores { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.indicador { background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.indicador > b { font-size: 0.98rem; overflow-wrap: anywhere; }
+.indicador p { font-size: 0.88rem; color: var(--tenue); }
+.indicador .formula { font-size: 0.86rem; }
+.indicador .formula span { display: block; font-size: 0.7rem; color: var(--tenue); text-transform: uppercase; letter-spacing: 0.04em; }
+.indicador pre { margin: 8px 0; padding: 10px 12px; background: var(--superficie-2); border-radius: 6px; font-family: var(--f-mono); font-size: 0.78rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chip.mono { font-family: var(--f-mono); font-size: 0.72rem; }
+
+/* ---------------------------------------------------------------------- bitácora */
+.bitacora { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.nota-bitacora { background: var(--superficie); border: 1px solid var(--linea); border-left: 4px solid var(--acento); border-radius: var(--radio); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.nota-bitacora.automatica { border-left-color: var(--neutro); }
+.nota-bitacora header { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 0.85rem; }
+.nota-bitacora header .btn { margin-left: auto; }
+.nota-bitacora p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.93rem; }
+.metadatos-abiertos { border-top: 1px solid var(--linea); padding-top: 10px; }
+.metadatos-abiertos[open] { display: flex; flex-direction: column; gap: 10px; }

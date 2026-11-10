@@ -7,8 +7,9 @@ from typing import Any
 
 from sqlalchemy import Connection, text
 
-from .. import consultas
-from ..publicacion import METADATOS
+from .. import consultas, indicadores
+from ..publicacion import METADATOS, nombre_columna
+from ..quality.mintic import servicio as calidad_mintic
 from ..storage.db import quote_ident
 
 NUMERICOS = {"smallint", "integer", "bigint", "numeric", "real", "double precision"}
@@ -46,7 +47,7 @@ def tipo_legible(tipo: str) -> str:
 def _fuentes(conn: Connection) -> dict[str, dict[str, Any]]:
     """Fuentes del registro con su última carga, indexadas por nombre."""
     filas = conn.execute(text("""
-        SELECT s.name, s.description, s.tags, s.type, s.enabled, s.owner,
+        SELECT s.name, s.description, s.tags, s.type, s.enabled, s.owner, s.spec,
                r.status AS ultimo_estado, r.finished_at AS ultima_carga, r.records_loaded AS ultimos_registros,
                st.cursor_value AS cursor
         FROM meta.sources s
@@ -60,9 +61,23 @@ def _fuentes(conn: Connection) -> dict[str, dict[str, Any]]:
     return {f["name"]: dict(f) for f in filas}
 
 
+def _construcciones(conn: Connection) -> dict[str, tuple[Any, int | None]]:
+    """tabla -> (cuándo se construyó, filas al construirse)."""
+    return {t: (en, filas) for t, en, filas in conn.execute(text(
+        "SELECT tabla, construida_en, filas FROM meta.construcciones"))}
+
+
+def _filas(conn: Connection, capa: str, nombre: str, guardadas: int | None) -> int:
+    """Filas de la tabla. Se guardan al construirla (publicación o dbt); solo las tablas sin ese
+    dato, construidas por fuera o antes de existir la columna, se cuentan."""
+    if guardadas is not None:
+        return guardadas
+    return conn.execute(text(f"SELECT count(*) FROM {quote_ident(capa)}.{quote_ident(nombre)}")).scalar_one()
+
+
 def catalogo(conn: Connection, q: str | None = None, etiqueta: str | None = None) -> list[dict[str, Any]]:
     fuentes = _fuentes(conn)
-    construidas = dict(conn.execute(text("SELECT tabla, construida_en FROM meta.construcciones")).all())
+    construidas = _construcciones(conn)
     cols_por_tabla: dict[tuple[str, str], list[str]] = {}
     for capa, tabla, col in conn.execute(text("""
         SELECT table_schema, table_name, column_name FROM information_schema.columns
@@ -82,11 +97,11 @@ def catalogo(conn: Connection, q: str | None = None, etiqueta: str | None = None
             continue
         if buscado and buscado not in normalizar(" ".join([titulo, descripcion, nombre, *cols, *etiquetas])):
             continue
-        filas = conn.execute(text(f"SELECT count(*) FROM {quote_ident(capa)}.{quote_ident(nombre)}")).scalar_one()
+        construida_en, guardadas = construidas.get(f"{capa}.{nombre}", (None, None))
         items.append({
             "capa": capa, "nombre": nombre, "titulo": titulo, "descripcion": descripcion,
-            "filas": filas, "n_columnas": len(cols), "etiquetas": etiquetas,
-            "construida_en": construidas.get(f"{capa}.{nombre}"),
+            "filas": _filas(conn, capa, nombre, guardadas), "n_columnas": len(cols), "etiquetas": etiquetas,
+            "construida_en": construida_en,
             "fuente": fuente,
         })
     return items
@@ -106,14 +121,70 @@ def ficha(conn: Connection, capa: str, nombre: str) -> dict[str, Any]:
         "SELECT obj_description(format('%I.%I', CAST(:s AS text), CAST(:t AS text))::regclass)"),
         {"s": capa, "t": nombre}).scalar()
     titulo, descripcion = titulo_y_descripcion(comentario, nombre)
-    filas = conn.execute(text(f"SELECT count(*) FROM {quote_ident(capa)}.{quote_ident(nombre)}")).scalar_one()
-    construida = conn.execute(text("SELECT construida_en FROM meta.construcciones WHERE tabla = :t"),
-                              {"t": f"{capa}.{nombre}"}).scalar()
+    fila = conn.execute(text("SELECT construida_en, filas, columnas FROM meta.construcciones WHERE tabla = :t"),
+                        {"t": f"{capa}.{nombre}"}).first()
+    construida, guardadas, nombres = fila if fila else (None, None, None)
+    filas = _filas(conn, capa, nombre, guardadas)
     for c in cols:
         c["tipo"] = tipo_legible(c["type"])
     return {"capa": capa, "nombre": nombre, "titulo": titulo, "descripcion": descripcion,
             "columnas": cols, "filas": filas, "construida_en": construida,
-            "fuente": _fuentes(conn).get(nombre)}
+            "nombres": nombres or {},                      # columna en la fuente -> columna publicada
+            "fuente": _fuentes(conn).get(nombre) if capa == "estandarizado" else None}
+
+
+def columnas_vista(f: dict[str, Any]) -> list[str] | None:
+    """Columnas que muestra la vista previa: las seleccionadas al cargar la fuente
+    (`preview_columns`); si no se eligieron, la llave y las obligatorias. None = todas."""
+    spec = (f.get("fuente") or {}).get("spec") or {}
+    elegidas = spec.get("preview_columns") or [
+        *spec.get("primary_key", []), *spec.get("contract", {}).get("required_columns", [])]
+    existentes = {c["name"] for c in f["columnas"]}
+    publicadas = {f["nombres"].get(c) or nombre_columna(c, set()) for c in elegidas}
+    visibles = [c["name"] for c in f["columnas"] if c["name"] in publicadas & existentes]
+    return visibles if visibles and len(visibles) < len([c for c in existentes if c not in METADATOS]) else None
+
+
+# ------------------------------------------------------------------------ bitácora
+def notas(conn: Connection, tabla: str) -> list[dict[str, Any]]:
+    return [dict(r) for r in conn.execute(text("""
+        SELECT id, tabla, categoria, texto, autor, automatica, creada_en, editada_en
+        FROM meta.bitacora WHERE tabla = :t ORDER BY creada_en DESC, id DESC
+    """), {"t": tabla}).mappings()]
+
+
+def nota(conn: Connection, nota_id: int) -> dict[str, Any] | None:
+    r = conn.execute(text("""
+        SELECT id, tabla, categoria, texto, autor, automatica, creada_en, editada_en
+        FROM meta.bitacora WHERE id = :id"""), {"id": nota_id}).mappings().first()
+    return dict(r) if r else None
+
+
+# --------------------------------------------------------------------- indicadores
+_TIPO_INDICADOR = {"número": "numero", "fecha": "fecha", "texto": "texto", "sí/no": "booleano"}
+
+
+def sugerencias_indicadores(conn: Connection, f: dict[str, Any]) -> dict[str, Any]:
+    """Indicadores sugeridos para el dataset, según su esquema y su tema."""
+    tabla = f"{quote_ident(f['capa'])}.{quote_ident(f['nombre'])}"
+    cols = [c for c in f["columnas"] if c["name"] not in METADATOS]
+    contables = [c["name"] for c in cols if c["tipo"] in ("texto", "sí/no")]
+    distintos: dict[str, int] = {}
+    if contables:      # una sola consulta para todas las columnas de texto
+        fila = conn.execute(text("SELECT " + ", ".join(
+            f"count(DISTINCT {quote_ident(c)})" for c in contables) + f" FROM {tabla}")).one()
+        distintos = dict(zip(contables, fila, strict=True))
+    fuente = f.get("fuente") or {}
+    personales = calidad_mintic.columnas_con_datos_personales(conn, fuente["name"]) if fuente else set()
+    columnas = [indicadores.Columna(c["name"], _TIPO_INDICADOR.get(c["tipo"], "otro"), distintos.get(c["name"]))
+                for c in cols]
+    lista = indicadores.sugerir(f"{f['capa']}.{f['nombre']}", columnas, f["titulo"], f["descripcion"],
+                                fuente.get("tags") or [], f["filas"], excluir=sorted(personales))
+    grupos: dict[str, list[indicadores.Sugerencia]] = {}
+    for s in lista:
+        grupos.setdefault(s.grupo, []).append(s)
+    return {"grupos": grupos, "temas": indicadores.temas_de(f["titulo"], f["descripcion"], fuente.get("tags") or [],
+                                                            columnas), "personales": sorted(personales)}
 
 
 def _histograma(conn: Connection, tabla: str, expr: str, lo: float, hi: float) -> list[float]:
@@ -200,11 +271,33 @@ def reglas_ultima_carga(conn: Connection, fuente: str) -> list[dict[str, Any]]:
     """), {"f": fuente}).mappings()]
 
 
+GRUPOS_TIPO = {"numeric": "Numéricos", "text": "Texto", "datetime": "Fechas", "boolean": "Sí/No"}
+
+
+def perfiles_por_tipo(conn: Connection, fuente: str) -> list[dict[str, Any]]:
+    """Salud de los datos de la última carga con registros, agrupada por tipo de dato:
+    [{'tipo', 'columnas': [...], 'vacios_promedio'}], en el orden Numéricos, Texto, Fechas, Sí/No, Otros."""
+    filas = conn.execute(text("""
+        SELECT column_name, inferred_type, n, null_rate, n_distinct, min_value, max_value, mean, p50
+        FROM meta.column_profiles
+        WHERE run_id = (SELECT run_id FROM meta.runs WHERE source_name = :f AND records_loaded > 0
+                        ORDER BY started_at DESC LIMIT 1)
+        ORDER BY null_rate DESC, column_name
+    """), {"f": fuente}).mappings().all()
+    grupos: dict[str, list[dict[str, Any]]] = {g: [] for g in [*GRUPOS_TIPO.values(), "Otros"]}
+    for r in filas:
+        grupos[GRUPOS_TIPO.get(r["inferred_type"], "Otros")].append(dict(r))
+    return [{"tipo": tipo, "columnas": cols, "vacios_promedio": sum(c["null_rate"] for c in cols) / len(cols),
+             "con_vacios": sum(1 for c in cols if c["null_rate"] > 0)}
+            for tipo, cols in grupos.items() if cols]
+
+
 def salud(conn: Connection) -> list[dict[str, Any]]:
     resultado = []
     for nombre, f in _fuentes(conn).items():
         resultado.append({**f, "cargas": cargas(conn, nombre),
-                          "incumplidas": [r for r in reglas_ultima_carga(conn, nombre) if not r["passed"]]})
+                          "incumplidas": [r for r in reglas_ultima_carga(conn, nombre) if not r["passed"]],
+                          "tipos": perfiles_por_tipo(conn, nombre)})
     return resultado
 
 

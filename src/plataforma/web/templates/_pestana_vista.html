@@ -1,5 +1,36 @@
+{# Vista previa: las columnas seleccionadas en el cargue y las filas que cumplen los filtros. #}
 <div class="panel-in">
-  <p class="tenue">Primeras {{ tabla.data | length }} de <span class="num">{{ tabla.total | num }}</span> filas.
-    <a href="/explorar/{{ f.capa }}/{{ f.nombre }}">Ver todas y filtrar</a></p>
-  {% include "_tabla_datos.html" %}
+  <form id="form-filtros" class="filtros" action="/datos/{{ f.capa }}/{{ f.nombre }}/vista"
+        hx-get="/datos/{{ f.capa }}/{{ f.nombre }}/vista" hx-target="#panel-contenido" hx-indicator="#panel">
+    <div class="filtros-top">
+      <h3>Filtrar la vista previa</h3>
+      <div class="botonera">
+        <button type="button" class="btn chico" data-agregar-filtro>+ Agregar filtro</button>
+        <button type="submit" class="btn chico primario">Aplicar</button>
+      </div>
+    </div>
+    <div id="lista-filtros" class="encabezado">
+      {% for fila in filtros %}{% include "_fila_filtro.html" %}{% endfor %}
+    </div>
+    <p class="sin-filtros tenue" {% if filtros %}hidden{% endif %}>Sin filtros: se muestran las primeras filas del dataset.</p>
+  </form>
+  <template id="plantilla-filtro">{% set fila = none %}{% include "_fila_filtro.html" %}</template>
+
+  {% if error %}
+  <div class="alerta" role="alert">{{ error }}<br>Revisa el valor: los números van sin puntos de miles (1250000) y las fechas como AAAA-MM-DD.</div>
+  {% endif %}
+  {% if tabla %}
+  <p class="tenue">
+    {% if tabla.data %}{{ "Primera" if tabla.data | length == 1 else "Primeras " ~ (tabla.data | length) }} de{% endif %}
+    <span class="num"><b>{{ tabla.total | num }}</b></span>
+    {{ "fila" if tabla.total == 1 else "filas" }}{{ " que cumplen los filtros" if filtros }}
+    · <b>{{ tabla.columns | length }}</b> de {{ total_columnas }} columnas{% if tabla.columns | length < total_columnas %} (las seleccionadas en el cargue){% endif %}.
+    <a href="/explorar/{{ f.capa }}/{{ f.nombre }}{{ '?' ~ query_filtros if query_filtros }}">Ver todas las filas y columnas en el explorador</a>
+  </p>
+  {% if tabla.data %}
+    {% include "_tabla_datos.html" %}
+  {% else %}
+  <div class="vacio-grande"><b>Ninguna fila cumple los filtros.</b><span>Quita o cambia alguna condición.</span></div>
+  {% endif %}
+  {% endif %}
 </div>

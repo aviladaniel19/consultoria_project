@@ -1,0 +1,11 @@
+{# Una nota de la bitácora. `n` es la nota; `admin` indica si se puede editar. #}
+<article class="nota-bitacora{{ ' automatica' if n.automatica }}" id="nota-{{ n.id }}">
+  <header>
+    <span class="chip {{ 'neutro' if n.automatica else 'capa' }}">{{ CATEGORIAS_BITACORA.get(n.categoria, n.categoria) }}</span>
+    <span><b>{{ n.autor }}</b> · {{ n.creada_en | fecha }}{% if n.editada_en %} · <span class="tenue">editada el {{ n.editada_en | fecha }}</span>{% endif %}</span>
+    {% if admin and not n.automatica %}
+    <button class="btn chico" type="button" hx-get="/bitacora/nota/{{ n.id }}" hx-target="#nota-{{ n.id }}" hx-swap="outerHTML">Editar</button>
+    {% endif %}
+  </header>
+  <p>{{ n.texto }}</p>
+</article>

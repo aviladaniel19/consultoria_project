@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     # Carpeta donde la plataforma web guarda los archivos que se suben
     landing_dir: Path = Path("data/landing")
     max_subida_mb: int = 200
+    # Permite conectar desde la web APIs en redes privadas (p. ej. servicios internos de la
+    # universidad). Por defecto solo APIs públicas, para que nadie apunte a la red interna.
+    permitir_redes_privadas: bool = False
+    # Filas que el motor de calidad MinTIC lee de la tabla publicada; por encima, una muestra aleatoria.
+    calidad_max_filas: int = 200_000
     # Claves de la API separadas por coma. Vacío = API abierta (solo para desarrollo local).
     api_keys: str = ""
     # Claves que además permiten cargar, actualizar y eliminar fuentes desde la web.

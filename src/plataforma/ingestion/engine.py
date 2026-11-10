@@ -10,6 +10,9 @@ Para cualquier fuente del registro:
   7. avanza el cursor y cierra la ejecución
   8. publica estandarizado.<fuente> (salvo que la construya un modelo dbt)
 
+El motor de calidad MinTIC envuelve la limpieza del paso 8: evalúa los registros crudos en el
+paso 5 (diagnóstico base) y la tabla publicada después del 8, y guarda el comparativo.
+
 Los pasos 4–7 van en una sola transacción: una ejecución fallida no deja
 filas a medias en la capa de origen.
 """
@@ -27,6 +30,9 @@ from sqlalchemy import Engine
 from .. import publicacion
 from ..config import get_settings
 from ..quality.contracts import missing_columns, run_checks
+from ..quality.mintic import servicio as calidad_mintic
+from ..quality.mintic.modelos import ReporteCalidad
+from ..quality.mintic.util import miles
 from ..quality.profiling import infer_schema, profile
 from ..registry.models import SourceSpec
 from ..storage import catalog
@@ -57,18 +63,44 @@ class RunResult:
     published: str | None = None          # tabla estandarizada publicada tras la carga
     published_rows: int | None = None
     publish_error: str | None = None
+    quality_before: float | None = None   # puntaje MinTIC (0-100) de los registros crudos
+    quality_after: float | None = None    # puntaje MinTIC de la tabla publicada
+    quality_level: str | None = None
 
 
-def _publicar(engine: Engine, spec: SourceSpec, records: list[dict], result: RunResult) -> None:
-    """Publica la capa estandarizada. Un fallo aquí no invalida la carga, que ya quedó guardada."""
+def _publicar(engine: Engine, spec: SourceSpec, records: list[dict], result: RunResult,
+              calidad_antes: ReporteCalidad | None) -> None:
+    """Publica la capa estandarizada (la limpieza) y mide su efecto en la calidad. Un fallo aquí
+    no invalida la carga, que ya quedó guardada."""
     try:
         pub = publicacion.publicar(engine, spec, orden=list(dict.fromkeys(k for r in records[:1000] for k in r)))
     except Exception as e:  # noqa: BLE001
         log.error("falló la publicación de %s: %s", spec.name, e)
         result.publish_error = f"{type(e).__name__}: {e}"
         return
-    if pub:
-        result.published, result.published_rows = pub.tabla, pub.filas
+    if not pub:
+        return
+    result.published, result.published_rows = pub.tabla, pub.filas
+    comparativo = calidad_mintic.evaluar_despues(engine, result.run_id, spec, pub.nombres, calidad_antes)
+    if comparativo:
+        result.quality_after, result.quality_level = comparativo.score_despues, comparativo.nivel_despues
+    _anotar_cargue(engine, result)
+
+
+def _anotar_cargue(engine: Engine, result: RunResult) -> None:
+    """Deja en la bitácora del dataset la novedad de este cargue."""
+    filas = miles(result.published_rows or 0)
+    partes = [f"Cargue de {miles(result.loaded)} registros; el dataset quedó con {filas} filas."]
+    if result.failed_checks:
+        partes.append("Reglas del contrato incumplidas: " + ", ".join(result.failed_checks) + ".")
+    if result.quality_before is not None and result.quality_after is not None:
+        partes.append(f"Calidad MinTIC: {miles(result.quality_before, 1)} antes de la limpieza y "
+                      f"{miles(result.quality_after, 1)} después (nivel {result.quality_level}).")
+    try:
+        with engine.begin() as conn:
+            catalog.agregar_nota(conn, result.published, "cargue", " ".join(partes), "Plataforma", automatica=True)
+    except Exception:  # noqa: BLE001
+        log.exception("no se pudo anotar el cargue de %s en la bitácora", result.source)
 
 
 # --------------------------------------------------------------- comparación
@@ -164,6 +196,7 @@ def run_source(engine: Engine, spec: SourceSpec, client: httpx.Client | None = N
         catalog.start_run(conn, run_id, spec.name, cursor)
 
     result = RunResult(source=spec.name, run_id=run_id, status="running", cursor_before=cursor)
+    calidad_antes: ReporteCalidad | None = None
     try:
         ensure_origen_table(engine, spec.origen_table)
         records, result.extracted = extract(spec, cursor, client)
@@ -197,6 +230,11 @@ def run_source(engine: Engine, spec: SourceSpec, client: httpx.Client | None = N
             catalog.save_quality(conn, run_id, spec.name, (c.as_row() for c in checks))
             catalog.save_profiles(conn, run_id, spec.name, (p.as_row() for p in profile(df, batch_schema)))
 
+            calidad_antes = calidad_mintic.evaluar_antes(conn, run_id, spec, df)   # diagnóstico base
+            if calidad_antes:
+                result.quality_before = calidad_antes.score_global
+                result.quality_level = calidad_antes.nivel_cumplimiento
+
             result.failed_checks = [f"{c.column_name}:{c.rule}" for c in checks if not c.passed]
             if any(not c.passed and c.severity == "error" for c in checks):
                 result.status = "failed_quality"     # se carga, pero dbt lo deja en cuarentena
@@ -220,7 +258,7 @@ def run_source(engine: Engine, spec: SourceSpec, client: httpx.Client | None = N
                                loaded=result.loaded, cursor_after=result.cursor_after,
                                schema_version=version)
         if publish and result.status in publicacion.APROBADAS:
-            _publicar(engine, spec, records, result)
+            _publicar(engine, spec, records, result, calidad_antes)
         return result
     except Exception as e:  # noqa: BLE001 — cualquier falla queda registrada en el catálogo
         log.error("falló la ingesta de %s: %s", spec.name, e)

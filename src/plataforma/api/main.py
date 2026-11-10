@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from typing import Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Security
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.security import APIKeyHeader
@@ -20,6 +20,8 @@ from sqlalchemy import Connection, text
 
 from .. import consultas
 from ..config import claves_acceso, get_settings, split_csv
+from ..quality.mintic import servicio as calidad_mintic
+from ..seguridad import intentos_clave
 from ..storage.db import bootstrap, get_engine
 from ..web import instalar_frontend
 
@@ -49,12 +51,19 @@ if origins := split_csv(get_settings().cors_origins):
 _api_key = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
-def require_key(key: str | None = Security(_api_key)) -> None:
-    """Exige una clave de PLATAFORMA_API_KEYS o PLATAFORMA_ADMIN_KEYS. Sin claves, no exige nada."""
+def require_key(request: Request, key: str | None = Security(_api_key)) -> None:
+    """Exige una clave de PLATAFORMA_API_KEYS o PLATAFORMA_ADMIN_KEYS. Sin claves, no exige nada.
+    Tras varias claves incorrectas desde una misma IP responde 429 un rato (contra la fuerza bruta)."""
     keys = claves_acceso()
     if not keys:
         return
+    ip = request.client.host if request.client else "desconocida"
+    if espera := intentos_clave.bloqueado(ip):
+        raise HTTPException(429, "demasiadas claves incorrectas; intenta más tarde",
+                            headers={"Retry-After": str(espera)})
     if not key or not any(secrets.compare_digest(key, k) for k in keys):
+        if key:                               # solo cuenta como intento una clave equivocada
+            intentos_clave.fallo(ip)
         raise HTTPException(401, "falta la cabecera X-API-Key o la clave no es válida",
                             headers={"WWW-Authenticate": "APIKey"})
 
@@ -118,6 +127,16 @@ def source_detail(name: str, conn: Connection = Depends(db)) -> dict[str, Any]:
         "schema": dict(schema._mapping) if schema else None,
         "last_profile": rows(profiles),
     }
+
+
+@router.get("/sources/{name}/calidad-mintic", tags=["calidad"])
+def calidad_mintic_fuente(name: str, conn: Connection = Depends(db)) -> dict[str, Any]:
+    """Evaluación de calidad según MinTIC de la última carga: reporte antes y después de la
+    limpieza (score_global, nivel_cumplimiento, criterios_evaluados, hallazgos_errores) y comparativo."""
+    reporte = calidad_mintic.ultimo(conn, name)
+    if reporte is None:
+        raise HTTPException(404, f"la fuente '{name}' no tiene evaluación de calidad; se genera en cada carga")
+    return reporte
 
 
 @router.get("/sources/{name}/schema-history", tags=["catálogo"])

@@ -58,6 +58,18 @@ incremental:
 # --- Llave natural (opcional, recomendada) ------------------------------------
 primary_key: [id]                # dbt la usa para deduplicar en la capa estandarizada
 
+# --- Vista previa y metadatos de datos abiertos (opcionales) -------------------
+# preview_columns: [id, fecha, valor]   # columnas de la vista previa; vacío = llave y obligatorias
+# metadata:                             # los evalúa el motor de calidad MinTIC (ERR002, ERR008_3)
+#   publisher: Nombre de la entidad
+#   contact_email: datos@entidad.gov.co
+#   category: Educación                 # no «Otros»
+#   update_frequency: Mensual           # Diaria, Semanal, Mensual, Trimestral, Semestral, Anual
+#   coverage: Nacional
+#   license: CC BY-SA 4.0
+#   column_descriptions:
+#     valor: Valor del contrato en pesos colombianos
+
 # --- Contrato de datos (opcional) ---------------------------------------------
 contract:
   required_columns: [id]         # si faltan, la carga falla

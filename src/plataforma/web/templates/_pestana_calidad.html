@@ -1,5 +1,12 @@
 {% from "_macros.html" import estado %}
 <div class="panel-in">
+{% if mintic %}
+{% include "_calidad_mintic.html" %}
+{% else %}
+<p class="tenue">La evaluación según los lineamientos de MinTIC se genera en cada carga. Esta fuente se cargó antes de
+  que existiera: pulsa <b>Actualizar datos</b> para obtenerla.</p>
+{% endif %}
+<h3>Contrato de la fuente</h3>
 <div class="dos-columnas">
   <section class="encabezado">
     <h3>Últimas cargas de la fuente <span class="mono">{{ f.fuente.name }}</span></h3>

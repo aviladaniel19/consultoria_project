@@ -18,10 +18,10 @@ models:
     # Registra cuándo se reconstruyó cada tabla (el frontend lo muestra como "actualizado")
     +post-hook:
       - >-
-        insert into meta.construcciones (tabla, construida_en, construida_por)
-        values ('{{ this.schema }}.{{ this.identifier }}', now(), 'dbt')
+        insert into meta.construcciones (tabla, construida_en, construida_por, filas)
+        values ('{{ this.schema }}.{{ this.identifier }}', now(), 'dbt', (select count(*) from {{ this }}))
         on conflict (tabla) do update
-        set construida_en = excluded.construida_en, construida_por = 'dbt'
+        set construida_en = excluded.construida_en, construida_por = 'dbt', filas = excluded.filas
     estandarizado:
       +schema: estandarizado
       +materialized: table

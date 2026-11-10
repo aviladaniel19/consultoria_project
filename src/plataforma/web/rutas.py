@@ -18,6 +18,9 @@ from sqlalchemy import Connection
 
 from .. import consultas
 from ..config import claves_acceso, get_settings, split_csv
+from ..quality.mintic import servicio as calidad_mintic
+from ..seguridad import intentos_clave
+from ..storage.catalog import CATEGORIAS_BITACORA
 from ..storage.db import get_engine
 from . import datos
 
@@ -116,7 +119,7 @@ def fmt_celda(v: Any) -> str:
 templates.env.filters.update(num=fmt_num, compacto=fmt_compacto, fecha=fmt_fecha, hace=fmt_hace,
                              pct=fmt_pct, celda=fmt_celda)
 templates.env.globals.update(ESTADOS=ESTADOS, REGLAS=REGLAS, OPERADORES=consultas.OPERADORES,
-                             NUMERICOS=datos.NUMERICOS)
+                             NUMERICOS=datos.NUMERICOS, CATEGORIAS_BITACORA=CATEGORIAS_BITACORA)
 
 
 # -------------------------------------------------------------------------- acceso
@@ -163,9 +166,10 @@ def conexion():
         yield conn
 
 
-def render(request: Request, plantilla: str, status_code: int = 200, **contexto: Any) -> HTMLResponse:
+def render(request: Request, plantilla: str, status_code: int = 200, headers: dict[str, str] | None = None,
+           **contexto: Any) -> HTMLResponse:
     contexto.setdefault("admin", puede_administrar(request))
-    return templates.TemplateResponse(request, plantilla, contexto, status_code=status_code)
+    return templates.TemplateResponse(request, plantilla, contexto, status_code=status_code, headers=headers)
 
 
 def es_htmx(request: Request) -> bool:
@@ -188,8 +192,15 @@ def ingresar_form(request: Request, siguiente: str = "/", error: bool = False):
 @router.post("/ingresar")
 def ingresar(request: Request, clave: str = Form(...), siguiente: str = Form("/")):
     destino = _destino_seguro(siguiente)
+    ip = request.client.host if request.client else "desconocida"
+    if espera := intentos_clave.bloqueado(ip):
+        return render(request, "error.html", 429, titulo="Demasiados intentos", seccion=None, con_sesion=False,
+                      mensaje=f"Hubo demasiados intentos con claves incorrectas. Intenta de nuevo en "
+                              f"{-(-espera // 60)} minutos.", headers={"Retry-After": str(espera)})
     if not _clave_valida(clave.strip()):
+        intentos_clave.fallo(ip)
         return RedirectResponse(f"/ingresar?{urlencode({'siguiente': destino, 'error': 1})}", 303)
+    intentos_clave.exito(ip)
     r = RedirectResponse(destino, 303)
     r.set_cookie(COOKIE, clave.strip(), httponly=True, samesite="strict",
                  secure=request.url.scheme == "https", max_age=60 * 60 * 24 * 30)
@@ -222,17 +233,43 @@ def buscar(request: Request, q: str = "", con_sesion: bool = Depends(sesion),
 
 
 # --------------------------------------------------------------------------- ficha
-PESTANAS = {"vista": "Vista previa", "columnas": "Columnas", "calidad": "Calidad", "uso": "Cómo usarlo"}
+PESTANAS = {"vista": "Vista previa", "columnas": "Columnas", "calidad": "Calidad",
+            "indicadores": "Indicadores", "bitacora": "Bitácora", "uso": "Cómo usarlo"}
+FILAS_VISTA = 20
+
+
+def _vista_previa(request: Request, conn: Connection, f: dict[str, Any]) -> dict[str, Any]:
+    """Vista previa: solo las columnas seleccionadas en el cargue y las filas que cumplen los filtros."""
+    visibles = datos.columnas_vista(f)
+    filtros, _, _, _ = _estado_explorador(request)
+    seleccion = set(visibles) if visibles else None
+    ctx: dict[str, Any] = {
+        "filtros": filtros, "error": None, "tabla": None, "total_columnas": len(f["columnas"]),
+        "columnas_filtro": [c for c in f["columnas"] if seleccion is None or c["name"] in seleccion],
+        "query_filtros": urlencode([(k, v) for fl in filtros
+                                    for k, v in (("fc", fl.columna), ("fo", fl.operador), ("fv", fl.valor))])}
+    try:
+        ctx["tabla"] = consultas.leer_tabla(conn, f["capa"], f["nombre"], filtros, limite=FILAS_VISTA,
+                                            solo_columnas=visibles)
+    except consultas.ConsultaInvalida as e:
+        conn.rollback()      # un valor inválido aborta la transacción; lo que sigue la necesita limpia
+        ctx["error"] = str(e)
+    return ctx
 
 
 def _contenido_pestana(request: Request, conn: Connection, f: dict[str, Any], pestana: str) -> dict[str, Any]:
     if pestana == "vista":
-        return {"tabla": consultas.leer_tabla(conn, f["capa"], f["nombre"], limite=20)}
+        return _vista_previa(request, conn, f)
     if pestana == "columnas":
         return {"perfiles": datos.perfil_columnas(conn, f["capa"], f["nombre"])}
     if pestana == "calidad" and f["fuente"]:
         nombre = f["fuente"]["name"]
-        return {"cargas": datos.cargas(conn, nombre), "reglas": datos.reglas_ultima_carga(conn, nombre)}
+        return {"cargas": datos.cargas(conn, nombre), "reglas": datos.reglas_ultima_carga(conn, nombre),
+                "mintic": calidad_mintic.ultimo(conn, nombre)}
+    if pestana == "indicadores":
+        return {"kpi": datos.sugerencias_indicadores(conn, f)}
+    if pestana == "bitacora":
+        return {"notas": datos.notas(conn, f"{f['capa']}.{f['nombre']}")}
     return {"base": str(request.base_url).rstrip("/")}
 
 

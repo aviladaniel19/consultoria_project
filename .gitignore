@@ -13,3 +13,8 @@ transform/target/
 transform/logs/
 transform/dbt_packages/
 transform/.user.yml
+
+# Informes y páginas HTML generados: no se versionan. Las plantillas de la web son HTML y
+# SÍ se versionan (la aplicación no arranca sin ellas), por eso la excepción.
+*.html
+!src/plataforma/web/templates/**/*.html

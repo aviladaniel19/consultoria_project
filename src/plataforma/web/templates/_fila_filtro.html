@@ -1,7 +1,7 @@
 {# Una condición del explorador. `fila` es un Filtro o none (plantilla vacía). #}
 <div class="filtro">
   <select name="fc" aria-label="Columna">
-    {% for c in f.columnas %}
+    {% for c in (columnas_filtro or f.columnas) %}
     <option value="{{ c.name }}" {% if fila and fila.columna == c.name %}selected{% endif %}>{{ c.name }} · {{ c.tipo }}</option>
     {% endfor %}
   </select>

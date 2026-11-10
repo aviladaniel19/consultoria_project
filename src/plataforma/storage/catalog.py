@@ -134,9 +134,29 @@ def insert_origen(conn: Connection, table: str, run_id: UUID, records: Sequence[
     return len(records)
 
 
+# --------------------------------------------------------------------- bitácora
+CATEGORIAS_BITACORA = {"datos": "Sobre los datos", "tratamiento": "Tratamiento aplicado",
+                       "limpieza": "Decisión de limpieza", "cargue": "Novedad del cargue"}
+
+
+def agregar_nota(conn: Connection, tabla: str, categoria: str, texto: str, autor: str,
+                 automatica: bool = False) -> int:
+    return conn.execute(text("""
+        INSERT INTO meta.bitacora (tabla, categoria, texto, autor, automatica)
+        VALUES (:t, :c, :x, :a, :auto) RETURNING id
+    """), dict(t=tabla, c=categoria, x=texto, a=autor, auto=automatica)).scalar_one()
+
+
+def editar_nota(conn: Connection, nota_id: int, categoria: str, texto: str, autor: str) -> bool:
+    return conn.execute(text("""
+        UPDATE meta.bitacora SET categoria = :c, texto = :x, autor = :a, editada_en = now() WHERE id = :id
+    """), dict(id=nota_id, c=categoria, x=texto, a=autor)).rowcount == 1
+
+
 # ----------------------------------------------------------------- eliminación
 def eliminar_fuente(conn: Connection, source: str) -> None:
     """Borra todo el rastro de una fuente en el catálogo (la tabla de origen la borra quien llama)."""
-    for tabla in ("quality_results", "column_profiles", "schema_versions", "state", "runs"):
+    for tabla in ("calidad_mintic", "quality_results", "column_profiles", "schema_versions", "state", "runs"):
         conn.execute(text(f"DELETE FROM meta.{tabla} WHERE source_name = :s"), {"s": source})
+    conn.execute(text("DELETE FROM meta.bitacora WHERE tabla = :t"), {"t": f"estandarizado.{source}"})
     conn.execute(text("DELETE FROM meta.sources WHERE name = :s"), {"s": source})

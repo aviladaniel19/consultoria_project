@@ -60,7 +60,7 @@
   <h2>Columnas detectadas</h2>
   <div class="tabla-scroll">
     <table>
-      <thead><tr><th scope="col">Columna en la fuente</th><th scope="col">Tipo detectado</th><th scope="col">Nombre al publicar</th><th scope="col">Llave</th><th scope="col">Obligatoria</th></tr></thead>
+      <thead><tr><th scope="col">Columna en la fuente</th><th scope="col">Tipo detectado</th><th scope="col">Nombre al publicar</th><th scope="col">Llave</th><th scope="col">Obligatoria</th><th scope="col">En la vista previa</th><th scope="col">Descripción (opcional)</th></tr></thead>
       <tbody>
         {% for c in columnas %}
         <tr>
@@ -69,6 +69,8 @@
           <td class="mono">{{ c.publicada }}</td>
           <td><input type="radio" name="llave" value="{{ c.original }}" aria-label="Usar {{ c.original }} como llave"></td>
           <td><input type="checkbox" name="obligatorias" value="{{ c.original }}" aria-label="{{ c.original }} es obligatoria"></td>
+          <td><input type="checkbox" name="vista" value="{{ c.original }}" checked aria-label="Mostrar {{ c.original }} en la vista previa"></td>
+          <td><input type="hidden" name="col" value="{{ c.original }}"><input class="campo" name="desc" maxlength="300" placeholder="Qué significa esta columna" aria-label="Descripción de {{ c.original }}"></td>
         </tr>
         {% endfor %}
       </tbody>
@@ -77,7 +79,25 @@
   <label class="opcion-radio"><input type="radio" name="llave" value="" checked> Sin llave: cada carga reemplaza todos los datos</label>
   <p class="tenue nota">La <b>llave</b> es la columna que identifica cada fila, como un código o un id. Con llave, una fila
     que vuelve a llegar actualiza la anterior en lugar de duplicarse. Las columnas <b>obligatorias</b> generan una
-    advertencia de calidad cuando vienen vacías.</p>
+    advertencia de calidad cuando vienen vacías. <b>En la vista previa</b> solo aparecen las columnas marcadas;
+    el explorador y las descargas siempre tienen todas.</p>
+  <details class="metadatos-abiertos">
+    <summary>Metadatos para datos abiertos (opcional)</summary>
+    <p class="tenue nota">Son los que exige el portal datos.gov.co. Sin ellos el dataset se publica igual, pero la
+      evaluación de calidad según MinTIC los marca como faltantes.</p>
+    <div class="fila-2 formulario">
+      <label>Entidad productora <input class="campo" name="entidad" maxlength="200" placeholder="Ej.: Universidad Santo Tomás"></label>
+      <label>Correo institucional de contacto <input class="campo" type="email" name="correo" maxlength="200" placeholder="datos@entidad.gov.co"></label>
+      <label>Categoría o sector
+        <select name="categoria"><option value="">Sin definir</option>{% for c in categorias %}<option>{{ c }}</option>{% endfor %}</select>
+      </label>
+      <label>Frecuencia de actualización
+        <select name="frecuencia"><option value="">Sin definir</option>{% for c in frecuencias %}<option>{{ c }}</option>{% endfor %}</select>
+      </label>
+      <label>Cobertura geográfica <input class="campo" name="cobertura" maxlength="200" placeholder="Nacional, Boyacá, Bogotá D.C.…"></label>
+      <label>Licencia <input class="campo" name="licencia" maxlength="100" value="CC BY-SA 4.0"></label>
+    </div>
+  </details>
   {% if p.tipo == "rest" %}
   <div class="fila-2 formulario">
     <label>Campo incremental (opcional)

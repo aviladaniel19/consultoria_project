@@ -5,7 +5,11 @@ services:
       POSTGRES_USER: plataforma
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-plataforma}
       POSTGRES_DB: plataforma
-    ports: ["5432:5432"]
+    # Solo desde este equipo (R, Python, DBeaver en localhost), por IPv4 y por IPv6: en Windows
+    # "localhost" se intenta primero como ::1 y sin esa línea la conexión se queda esperando.
+    # Para abrirla a la red, cambia a "5432:5432" y usa una contraseña fuerte y usuarios de
+    # solo lectura (plataforma crear-lector).
+    ports: ["127.0.0.1:5432:5432", "[::1]:5432:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U plataforma"]
@@ -29,7 +33,7 @@ services:
   cli:
     build: .
     image: plataforma-datos:local
-    entrypoint: ["plataforma"]
+    entrypoint: ["entrypoint.sh", "plataforma"]
     env_file: .env
     environment:
       PLATAFORMA_DATABASE_URL: postgresql+psycopg://plataforma:${POSTGRES_PASSWORD:-plataforma}@db:5432/plataforma
@@ -43,7 +47,7 @@ services:
     build: .
     image: plataforma-datos:local
     working_dir: /app/transform
-    entrypoint: ["dbt"]
+    entrypoint: ["entrypoint.sh", "dbt"]
     environment:
       PGHOST: db
       PGPASSWORD: ${POSTGRES_PASSWORD:-plataforma}

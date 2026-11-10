@@ -1,0 +1,33 @@
+{# Bitácora del dataset: registro histórico de notas sobre los datos y su tratamiento. #}
+<div class="panel-in">
+  <p class="tenue">Registro de lo que se sabe y se decide sobre estos datos: su origen, el tratamiento aplicado,
+    las decisiones de limpieza y las novedades de cada cargue. La plataforma anota sola cada cargue.</p>
+
+  {% if admin %}
+  <form class="filtros formulario" hx-post="/datos/{{ f.capa }}/{{ f.nombre }}/bitacora" hx-target="#panel-contenido">
+    <h3>Agregar una nota</h3>
+    {% if error %}<div class="alerta" role="alert">{{ error }}</div>{% endif %}
+    <div class="fila-2">
+      <label>Tipo de nota
+        <select name="categoria">
+          {% for clave, etiqueta in CATEGORIAS_BITACORA.items() %}<option value="{{ clave }}" {% if valores and valores.categoria == clave %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Quién escribe <input class="campo" name="autor" required maxlength="80" placeholder="Tu nombre" value="{{ valores.autor if valores else '' }}" autocomplete="name"></label>
+    </div>
+    <label>Nota
+      <textarea class="campo" name="texto" rows="3" required maxlength="4000" placeholder="Ej.: Se excluyeron los casos sin fecha de creación porque no permiten calcular tiempos.">{{ valores.texto if valores else '' }}</textarea>
+    </label>
+    <div class="botonera"><button class="btn primario" type="submit">Guardar nota</button></div>
+  </form>
+  {% endif %}
+
+  <section class="bitacora" aria-label="Notas, de la más reciente a la más antigua">
+    {% for n in notas %}
+      {% include "_nota.html" %}
+    {% else %}
+    <div class="vacio-grande"><b>Todavía no hay notas.</b>
+      <span>{{ "Escribe la primera con el formulario de arriba." if admin else "Las agrega quien administra la plataforma." }}</span></div>
+    {% endfor %}
+  </section>
+</div>

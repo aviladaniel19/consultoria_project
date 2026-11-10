@@ -1,0 +1,85 @@
+{# Evaluación de calidad según MinTIC de la última carga: antes y después de la limpieza. #}
+{% set SEVERIDAD = {"error": ("error", "Error"), "advertencia": ("aviso", "Advertencia"), "info": ("neutro", "Sugerencia")} %}
+{% set NIVEL = {"Excelente": "ok", "Avanzado": "ok", "Básico": "aviso", "No Aprobado": "error"} %}
+{% set final = mintic.despues or mintic.antes %}
+{% set comp = mintic.comparativo %}
+<section class="mintic encabezado" aria-label="Evaluación de calidad según MinTIC">
+  <h3>Calidad según los lineamientos de MinTIC</h3>
+  <div class="mintic-resumen">
+    <div class="puntaje">
+      <b class="num">{{ final.score_global | num(1) }}</b><span>de 100</span>
+      <span class="chip {{ NIVEL.get(final.nivel_cumplimiento, 'neutro') }}">{{ final.nivel_cumplimiento }}</span>
+    </div>
+    <div class="encabezado">
+      {% if comp %}
+      <p>La limpieza {{ "subió" if comp.cambio_score > 0 else ("bajó" if comp.cambio_score < 0 else "no cambió") }} el puntaje
+        {% if comp.cambio_score %}de <b class="num">{{ comp.score_antes | num(1) }}</b> a <b class="num">{{ comp.score_despues | num(1) }}</b>
+        ({{ "+" if comp.cambio_score > 0 }}{{ comp.cambio_score | num(1) }} puntos){% else %}(<b class="num">{{ comp.score_despues | num(1) }}</b>){% endif %}.
+        Resolvió <b>{{ comp.resueltos | length }}</b> {{ "hallazgo" if comp.resueltos | length == 1 else "hallazgos" }},
+        quedan <b>{{ comp.persistentes | length }}</b> y aparecieron <b>{{ comp.nuevos | length }}</b>.</p>
+      <p class="tenue nota">Antes: {{ comp.filas_antes | num }} registros tal como llegaron. Después:
+        {{ comp.filas_despues | num }} filas publicadas{% if final.muestra %} (evaluadas sobre una muestra aleatoria){% endif %}.</p>
+      {% else %}
+      <p>Puntaje de los {{ final.filas | num }} registros {{ "publicados" if mintic.despues else "tal como llegaron de la fuente (la carga no se publicó)" }}.</p>
+      {% endif %}
+      <p class="tenue nota">Evaluado {{ mintic.creada_en | hace }}. {{ final.nota_metodologica }}</p>
+    </div>
+  </div>
+
+  <div class="tabla-scroll">
+    <table class="criterios">
+      <thead><tr><th scope="col">Criterio (ISO/IEC 25012)</th>{% if comp %}<th scope="col">Antes</th>{% endif %}<th scope="col">{{ "Después" if comp else "Puntaje" }}</th><th scope="col">De 0 a 10</th>{% if comp %}<th scope="col">Cambio</th>{% endif %}</tr></thead>
+      <tbody>
+        {% set antes = {} %}
+        {% if comp %}{% for c in comp.criterios %}{% set _ = antes.update({c.criterio: c}) %}{% endfor %}{% endif %}
+        {% for c in final.criterios_evaluados %}
+        {% set cambio = antes[c.criterio].cambio if comp else 0 %}
+        <tr>
+          <td>{{ c.criterio }}{% if c.hallazgos %} <span class="tenue">· {{ c.hallazgos }} {{ "hallazgo" if c.hallazgos == 1 else "hallazgos" }}</span>{% endif %}</td>
+          {% if comp %}<td class="n">{{ antes[c.criterio].antes | num(1) }}</td>{% endif %}
+          <td class="n"><b>{{ c.puntaje | num(1) }}</b></td>
+          <td><div class="barra-puntaje {{ 'bajo' if c.puntaje < 6 else ('medio' if c.puntaje < 8) }}" role="img" aria-label="{{ c.puntaje | num(1) }} de 10"><i style="width: {{ c.puntaje * 10 }}%"></i></div></td>
+          {% if comp %}<td class="n {{ 'sube' if cambio > 0 else ('baja' if cambio < 0) }}">{% if cambio %}{{ "▲ +" if cambio > 0 else "▼ " }}{{ cambio | num(1) }}{% else %}<span class="tenue">=</span>{% endif %}</td>{% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% macro tabla_hallazgos(lista) %}
+  <div class="tabla-scroll">
+    <table class="hallazgos">
+      <thead><tr><th scope="col">Código</th><th scope="col">Severidad</th><th scope="col">Dónde</th><th scope="col">Qué se encontró</th><th scope="col">Recomendación de MinTIC</th></tr></thead>
+      <tbody>
+        {% for h in lista %}
+        <tr>
+          <td class="mono">{{ h.codigo }}</td>
+          <td><span class="chip {{ SEVERIDAD[h.severidad][0] }}">{{ SEVERIDAD[h.severidad][1] }}</span></td>
+          <td class="texto">{{ h.ubicacion }}</td>
+          <td class="texto">{{ h.mensaje }}{% if h.tasa is not none and h.columna %} <span class="tenue">({{ h.tasa | pct(1) }})</span>{% endif %}</td>
+          <td class="texto tenue">{{ h.recomendacion }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endmacro %}
+
+  {% if final.hallazgos_errores %}
+  <h4>{{ final.hallazgos_errores | length }} {{ "hallazgo" if final.hallazgos_errores | length == 1 else "hallazgos" }} en los datos {{ "publicados" if mintic.despues else "recibidos" }}</h4>
+  {{ tabla_hallazgos(final.hallazgos_errores) }}
+  {% else %}
+  <p><span class="chip ok"><span aria-hidden="true">✓</span>Sin hallazgos</span> Ninguna regla automática encontró problemas.</p>
+  {% endif %}
+
+  {% if comp and comp.resueltos %}
+  <details>
+    <summary>{{ comp.resueltos | length }} {{ "hallazgo que resolvió" if comp.resueltos | length == 1 else "hallazgos que resolvió" }} la limpieza</summary>
+    {{ tabla_hallazgos(comp.resueltos) }}
+  </details>
+  {% endif %}
+  <details>
+    <summary>Errores de la guía que requieren revisión manual</summary>
+    <ul class="tenue nota">{% for codigo, texto in final.revision_manual.items() %}<li><span class="mono">{{ codigo }}</span> {{ texto }}</li>{% endfor %}</ul>
+  </details>
+</section>

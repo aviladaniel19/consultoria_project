@@ -26,6 +26,11 @@
     {% elif t.cargados == 0 %}
     <p class="tenue">No había registros nuevos: el dataset ya estaba al día.</p>
     {% endif %}
+    {% if t.calidad_antes is not none %}
+    <p>Calidad según MinTIC: <b class="num">{{ t.calidad_antes | num(1) }}</b> antes de la limpieza
+      {%- if t.calidad_despues is not none %} y <b class="num">{{ t.calidad_despues | num(1) }}</b> después{% endif %}
+      (nivel {{ t.nivel_calidad }}). El detalle está en la pestaña Calidad del dataset.</p>
+    {% endif %}
     {% if t.reglas %}<p class="tenue">Reglas incumplidas: <span class="mono">{{ t.reglas | join(", ") }}</span></p>{% endif %}
     {% if t.error_publicacion %}<p class="alerta">La carga se guardó, pero no se pudo publicar: {{ t.error_publicacion }}</p>{% endif %}
     <div class="botonera">

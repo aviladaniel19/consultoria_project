@@ -7,6 +7,7 @@ dbt nuevo aparece aquí sin tocar código.
 from __future__ import annotations
 
 import logging
+import os
 import secrets
 from contextlib import asynccontextmanager
 from typing import Any, Literal
@@ -16,7 +17,8 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request, 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.security import APIKeyHeader
-from sqlalchemy import Connection, text
+from sqlalchemy import Connection, make_url, text
+from sqlalchemy.exc import OperationalError
 
 from .. import consultas
 from ..config import claves_acceso, get_settings, split_csv
@@ -29,9 +31,25 @@ log = logging.getLogger(__name__)
 Layer = Literal["estandarizado", "analitico"]
 
 
+def _sin_base_de_datos(error: OperationalError) -> str:
+    """Mensaje accionable cuando la base de datos no responde al arrancar."""
+    url = make_url(get_settings().database_url)
+    pista = ""
+    if url.host in (None, "localhost", "127.0.0.1", "::1") and "PLATAFORMA_DATABASE_URL" not in os.environ:
+        pista = (" Se está usando la conexión local por defecto porque la variable de entorno "
+                 "PLATAFORMA_DATABASE_URL no está definida: en un servicio desplegado (Render, etc.) "
+                 "defínela con la URL de tu base PostgreSQL.")
+    return (f"No se pudo conectar a PostgreSQL en {url.host}:{url.port or 5432} "
+            f"(base «{url.database}»).{pista} Detalle: {str(error.orig).splitlines()[0]}")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    bootstrap(get_engine())
+    try:
+        bootstrap(get_engine())
+    except OperationalError as e:
+        log.critical(_sin_base_de_datos(e))
+        raise SystemExit(3) from None          # sin base de datos no hay servicio: salir sin traceback
     if not claves_acceso():
         log.warning("PLATAFORMA_API_KEYS está vacío: la API queda abierta. Úsalo solo en desarrollo local.")
     yield

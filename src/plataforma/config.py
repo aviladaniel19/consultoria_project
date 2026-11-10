@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +29,25 @@ class Settings(BaseSettings):
     cors_origins: str = ""
     # Conexión del servidor MCP; conviene un usuario creado con `plataforma crear-lector`.
     mcp_database_url: str | None = None
+
+    @field_validator("database_url", "mcp_database_url", mode="after")
+    @classmethod
+    def _driver_psycopg(cls, v: str | None) -> str | None:
+        return url_postgres(v)
+
+
+def url_postgres(url: str | None) -> str | None:
+    """Convierte la URL de conexión al formato de SQLAlchemy con el driver `psycopg` (v3).
+
+    Render, Heroku y la mayoría de los servicios entregan `postgres://` o `postgresql://`, que
+    SQLAlchemy asocia a psycopg2. La plataforma usa psycopg 3, así que se cambia el esquema.
+    """
+    if not url:
+        return url
+    for prefijo in ("postgres://", "postgresql://"):
+        if url.startswith(prefijo):
+            return "postgresql+psycopg://" + url[len(prefijo):]
+    return url
 
 
 def split_csv(value: str) -> list[str]:

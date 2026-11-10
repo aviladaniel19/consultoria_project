@@ -20,6 +20,7 @@ RUN useradd --uid 1000 --create-home plataforma \
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh && chmod 755 /usr/local/bin/entrypoint.sh
 
+# Local: 8000. Las plataformas de despliegue (Render, Railway…) definen PORT y esperan que se use.
 EXPOSE 8000
 ENTRYPOINT ["entrypoint.sh"]
-CMD ["uvicorn", "plataforma.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "exec uvicorn plataforma.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -78,6 +78,30 @@ Sin Docker: `pip install -e ".[dev,transform]"` y usa el comando `plataforma`
 directamente. El `Makefile` resume los comandos, pero usa sintaxis POSIX: en
 Windows funciona desde Git Bash.
 
+## Despliegue en Render (u otra plataforma con Docker)
+
+El `Dockerfile` ya sirve para desplegar: respeta la variable `PORT` que define la
+plataforma y acepta la URL de base de datos en el formato que entrega Render
+(`postgres://…` o `postgresql://…`). Pasos:
+
+1. Crea una base **PostgreSQL** en Render, en la misma región que el servicio, y copia su
+   *Internal Database URL*.
+2. En el servicio web (tipo Docker), sección *Environment*, define:
+
+   | Variable | Valor |
+   | --- | --- |
+   | `PLATAFORMA_DATABASE_URL` | La *Internal Database URL* de la base. **Sin ella, el servicio intenta conectarse a `localhost` y no arranca** |
+   | `PLATAFORMA_API_KEYS` y `PLATAFORMA_ADMIN_KEYS` | Claves generadas (ver `.env.example`). **Imprescindibles**: el servicio es público y, sin claves, cualquiera podría cargar y borrar datos |
+   | `FORWARDED_ALLOW_IPS` | `*`. Así el límite de intentos de clave ve la IP real de cada persona y no la del proxy de Render |
+
+3. Despliega de nuevo. `/health` debe responder `{"status":"ok"}`.
+
+Limitaciones del disco de Render: sin un *Disk* persistente, los archivos subidos desde la
+web y los `sources/*.yml` que ella escribe se pierden en cada despliegue o reinicio,
+aunque los datos ya publicados siguen en PostgreSQL. Con un *Disk* montado en `/app/data`
+(plan de pago), define además `PLATAFORMA_SOURCES_DIR=data/sources` para que ambos
+queden en el disco.
+
 ## Configuración
 
 Toda la configuración va en `.env`, que no se sube al repositorio. La plantilla
